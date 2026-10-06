@@ -1,0 +1,60 @@
+.activity-dictation {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.activity-dictation summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.activity-dictation-body {
+  display: grid;
+  gap: 12px;
+  padding-top: 12px;
+}
+
+.activity-dictation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.activity-dictation-status,
+.activity-dictation-interim {
+  margin: 0;
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.activity-dictation-interim {
+  opacity: 0.8;
+}
+
+.gtm-activity-form .activity-notes-count {
+  margin: -8px 0 0;
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.gtm-activity-form .activity-message-notes {
+  min-height: 150px;
+  resize: vertical;
+}
+
+.gtm-activity-form .activity-date-field {
+  display: grid;
+  gap: 10px;
+}
+
+.gtm-activity-form .activity-unknown-date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gtm-activity-form .activity-unknown-date input {
+  width: auto;
+  min-height: auto;
+}

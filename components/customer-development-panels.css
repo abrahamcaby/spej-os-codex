@@ -1,0 +1,13 @@
+.customer-development-panel { border-top: 1px solid var(--border, #e1e5eb); padding-top: 14px; margin-top: 14px; min-width: 0; }
+.customer-development-panel h4 { margin: 0 0 8px; font-size: 14px; }
+.customer-development-panel p { font-size: 13px; line-height: 1.5; }
+.customer-development-panel summary { cursor: pointer; font-size: 13px; font-weight: 600; padding: 8px 0; }
+.customer-development-summary { display: flex; flex-wrap: wrap; gap: 8px; }
+.customer-development-summary span { border: 1px solid var(--border, #e1e5eb); border-radius: 20px; padding: 5px 9px; font-size: 12px; }
+.customer-development-editor { display: grid; gap: 12px; padding: 12px 0; }
+.customer-development-editor button { justify-self: start; }
+.customer-development-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+.customer-development-fields label { display: grid; align-content: start; gap: 6px; font-size: 12px; font-weight: 600; }
+.customer-development-fields input, .customer-development-fields select, .customer-development-fields textarea { font: inherit; width: 100%; min-width: 0; padding: 9px; border-radius: 7px; border: 1px solid var(--border, #d6dce5); background: var(--surface, white); color: inherit; }
+.customer-development-fields textarea { min-height: 80px; resize: vertical; }
+.customer-development-notice { border-left: 3px solid #bf8525; padding-left: 10px; }

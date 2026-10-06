@@ -336,7 +336,7 @@ export function SpejAgent({
 
   return <div className="view agent-view">
     <div className="page-heading agent-heading">
-      <div><p className="eyebrow">Spej OS assistant</p><h1>SOSA</h1><p className="page-description">Try the proposed SOSA workspace with local preview data. With a configured preview AI provider, it can prepare coordinated changes across CRM, GTM, Projects, tasks, campaigns, content, and metrics. This standalone build still needs production identity, model connections, governed tools, and server-enforced permissions.</p></div>
+      <div><p className="eyebrow">Spej OS assistant</p><h1>SOSA</h1><p className="page-description">Try the proposed SOSA workspace with local preview data. It can prepare coordinated changes across CRM, GTM, Projects, tasks, campaigns, content, and metrics. In production, the existing SOSA service remains authoritative for identity, models, tools, and permissions.</p></div>
       <div className={`agent-connection ${previewModelReady ? "ready" : ""}`}><span><i/><b>{providerLabel}</b><small>{previewModelReady ? "Local pilot processing only" : "Production SOSA status is not checked here"}</small></span><button onClick={openAiSettings}>{previewModelReady ? "Preview settings" : "Configure preview"}<ChevronRight size={14}/></button></div>
     </div>
 

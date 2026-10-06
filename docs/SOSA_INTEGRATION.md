@@ -1,10 +1,6 @@
-# SOSA integration contract and historical adapter notes
+# Connect the existing Spej OS SOSA
 
-**Direction update — September 17, 2026:** Spej OS is now a standalone new build. The existing-SOSA approach below is retained as an optional historical adapter recipe, not a mandatory dependency or authorization to modify production. Engineering can select a new governed SOSA runtime or explicitly reuse an existing service. In either case, retain permission-filtered context, trusted identity, exact proposals, human approvals where required, atomic/versioned commits, and audit. Microsoft Graph and Plooms are not connected; Plooms' execution and/or usage contract must be confirmed before wiring it.
-
-For the current synthetic demo, run `npm ci`, then `npm run company-demo -- --dev --port=3102`. See [Company OS planning](COMPANY_OS_PLANNING.md). Launching this demo does not configure a live model. The production startup guard and all release gates remain in force.
-
-## Historical existing-SOSA integration option
+## Overview
 
 **Keep the SOSA that Spej already built. Add GTM capabilities to it.** This project supplies the intentional GTM interface, business definitions and validation rules—not a replacement agent, model, memory system, or company-wide workflow.
 
@@ -30,7 +26,7 @@ An existing tool-based SOSA can use the first two functions directly and keep it
 
 Current actions are `create`, `update`, and task-only `complete`, with at most 12 per proposal. The response shape is `{ reply, needsClarification, actions }`; each action supplies `type`, `collection`, `data`, and an exact `recordId` for an existing record. Field types and allowed values are in `lib/types.ts` and the validators. Ambiguous names, unsupported values, broken links and unsafe completion are rejected.
 
-## Historical connection recipe if existing-SOSA reuse is selected
+## The connection Spej IT implements
 
 1. **Identity and records:** use Spej OS sign-in and authorize records and fields before supplying context to SOSA. Map canonical IDs and GTM-owned fields; do not pass whole Spej OS objects through GTM normalizers, which can discard unrelated fields.
 2. **Agent tools:** register GTM read/metrics and prepare-change capabilities with the existing SOSA. Keep the existing agent’s memory and unrelated tools. The pilot’s first-300-record limit is not company-wide search; add permission-aware retrieval for larger datasets.
@@ -50,4 +46,4 @@ Before release, test: one conversation updates a contact, opportunity and linked
 
 The private GitHub handoff should include the app source, this contract, tests and these notes—not local databases, tokens or exports. Compatibility and integration effort cannot be confirmed until the team maps its existing SOSA tool/API interface, authentication and record services. No overhaul of the existing agent is assumed.
 
-Historical handoff evidence: the automated tests, lint, production build and isolated launcher smoke check passed at the earlier handoff checkpoint. See [Company OS planning](COMPANY_OS_PLANNING.md) for the latest recorded local check counts; record fresh candidate-commit and GitHub CI evidence separately. Integration-contract tests exercise an injected test agent and direct tool-style proposals without model credentials or database access. The actual Spej OS SOSA service has not been connected or tested.
+Verified locally at handoff: the full automated test suite, lint, production build and isolated launcher smoke check passed. Integration-contract tests exercise an injected test agent and direct tool-style proposals without model credentials or database access. The actual Spej OS SOSA service has not been connected or tested.

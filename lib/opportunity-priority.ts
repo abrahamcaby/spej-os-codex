@@ -78,7 +78,7 @@ function dueScore(value: string, now: Date) {
 
 function activityRecency(activities: ActivityItem[], opportunity: OpportunityItem, now: Date) {
   const today = localDay(now);
-  const exchanges: Array<ActivityItem["metricType"]> = ["Reply received", "Meeting held", "Call connected", "Incoming call connected", "Check-in completed"];
+  const exchanges: Array<ActivityItem["metricType"]> = ["Reply received", "Meeting held", "Call connected", "Check-in completed"];
   const linked = activities.filter((item) => !item.archivedAt
     && item.sourceDateKnown !== false
     && exchanges.includes(item.metricType)

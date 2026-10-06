@@ -1,30 +1,18 @@
-# Standalone Spej OS working build
+# Spej OS — Unified Operations Preview
 
-**Current code baseline:** PR #5 was merged into `main` at `87f722a` (verified September 21). Use `main` for the latest merged preview; older review-branch and no-merge statements below are historical. A merge is not production deployment or integration approval.
-
-The [September 21 agentic CRM recommendations](docs/AGENTIC_CRM_RECOMMENDATIONS.md) explain what to adapt from Comp AI CRM, what to avoid, and the phased engineering acceptance checklist. This is a planning update: CRM Outreach, persistent account-scoped SOSA and live ingestion/background workers remain to be built.
-
-Background Intelligence also supports **Custom provider · IT-managed**, for Plooms or another approved company service. A tested server-side adapter interface routes custom curation without assuming API compatibility or falling back to a built-in provider. No custom adapter ships connected. See [Custom Background AI](docs/CUSTOM_BACKGROUND_AI.md) for the registration point and IT checklist.
-
-Settings → **Integrations & connections** now organizes personal and company providers, requested capabilities, and a browser-local connection plan with a minimized IT handoff export. It includes Microsoft 365, Granola, and Plaud setup boundaries plus a tested, fail-closed server readiness registry. No live provider adapters are registered and no sign-in or sync is enabled. See [Connections and integrations](docs/CONNECTIONS_AND_INTEGRATIONS.md) for the exact implementation and activation checklist.
-
-The September 18 CRM update adds person-level communication history across email, LinkedIn, calls, meetings, text/SMS, and WhatsApp. Log interactions manually, paste message notes, optionally dictate and review notes, and add dated follow-up work. Outreach, replies, and conversations have separate evidence-based dates. [CRM communication history](docs/CRM_COMMUNICATION_HISTORY.md) explains the workflow and integration boundaries; these channels are not automatically synced.
-
-The September 17 company-OS planning foundation adds generic, editable plans and capacity-aware daily scheduling to My Work. No personal GTM plan or named employee is required by the new planning logic. See [Company OS planning](docs/COMPANY_OS_PLANNING.md) for the walkthrough, architecture, and honest connection boundaries.
-
-This is a standalone review build for the private **SpejAI/spej-os-aby-revamp** repository, not a production deployment. GitHub publication and CI status must be verified from the candidate branch/pull request. Inherited material below describes the earlier prototype; references to integrating into existing Spej OS are historical, not the new-build requirement. The existing production repository remains untouched.
-
-Start this standalone preview with `npm run company-demo -- --dev --port=3102` after installing dependencies. Open `http://127.0.0.1:3102/?tab=today`. My Work puts **What needs attention** first, followed by an optional collapsed **Work schedule**. The dedicated **Calendar** tab shows the same time blocks alongside assigned deadlines in week, month, and agenda views. Working hours and optional goals/routines live under Calendar → Planning settings. Outlook/Teams are explicitly not connected. This launcher uses isolated synthetic records; planning changes stay in this browser. See the linked build notes before packaging or connecting real services.
-
-For the current handoff, start with [GitHub handoff](docs/GITHUB_HANDOFF.md), [Connections and integrations](docs/CONNECTIONS_AND_INTEGRATIONS.md), [Company OS planning](docs/COMPANY_OS_PLANNING.md), [Task work layout](docs/TASK_WORK_LAYOUT.md), and [CRM communication history](docs/CRM_COMMUNICATION_HISTORY.md). Project/GTM work uses responsive task cards with labeled controls, focused-task navigation, and safer secondary actions. The September 18 local regression suite passed 763 tests, lint, the production build, and launcher smoke tests; this does not claim a fresh-install or remote CI result for an uploaded commit.
-
-# Earlier unified operations preview
+> **Spej OS Aby revamp — independent IT review repository.** This is a non-production product preview and integration proposal. It does not replace or modify the current `SpejAI/spej-ai-os` repository. Spej IT should review the contracts and selectively integrate approved parts through its normal architecture, security, and release process.
 
 A local-first product preview for one connected Spej operating system. The interface has focused **CRM**, **GTM**, and **Projects** views over the same accounts, people, opportunities, projects, tasks, activities, and approved SOSA actions. It is based on Matt Wolfe's open-source [Control Center](https://github.com/mreflow/control-center) and incorporates the post-recording upgrades shown in his [August 2026 walkthrough](https://www.youtube.com/watch?v=rKo9iLGjUbs).
 
 The local SQLite build is a working demo, not the production system of record. A company deployment should preserve this information architecture and connect it to the existing Spej OS identity, permissions, CRM, project, ticket, document, audit, and integration services instead of creating a second database.
 
 ## Handoff status
+
+### September 9 demo-readiness update
+
+Start with the [live demo quickstart](docs/DEMO_QUICKSTART.md) and [September 9 change notes](docs/SEPTEMBER_9_LOCAL_PREVIEW.md). This review adds selectable My Work components, evidence-backed AI-readiness profiles, personal/campaign/coordinated nurture, discovery economics, adoption reviews, Blanca's engineering demo profile, dated project progress notes and HTTPS resource links. The [mobile roadmap](docs/MOBILE_READINESS.md) explains what can be reused and what still needs engineering; this is not a native app.
+
+The source remains an independent local preview. Existing production Kanban, Grid, Gantt and Documentation must be preserved during integration. Actual production SOSA, company identity and canonical storage are not connected; the demo starts with its preview model off. Use the latest review branch from the handoff pull request, not an older main-branch snapshot. No merge or production rollout is authorized by these demo checks.
 
 ### September 8 relationship-context update
 

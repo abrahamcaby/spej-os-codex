@@ -122,35 +122,6 @@ test("agent proposals create campaigns and link reviewed content by campaign nam
   assert.equal(result.workspace.content[0].approverProfileId, "ken");
 });
 
-test("new content proposals use the shared Content workflow and cannot create historical personal themes", () => {
-  const result = applyAgentWorkspaceActions(emptyWorkspace(), [{ type: "create", collection: "content", data: { title: "Team briefing", pillar: "AI Strategy & Business Alignment" } }]);
-  assert.equal(result.workspace.content[0].stream, "Spej Authority-building content");
-  assert.equal(result.workspace.content[0].pillar, "AI Strategy & Business Alignment");
-  for (const data of [
-    { title: "New personal stream", stream: "Personal LinkedIns" },
-    { title: "New personal theme", pillar: "Moments That Matter" },
-  ]) assert.throws(() => applyAgentWorkspaceActions(emptyWorkspace(), [{ type: "create", collection: "content", data }]), /shared Content/);
-});
-
-test("ordinary edits preserve historical content while explicit company reclassification affects only that record", () => {
-  const workspace = emptyWorkspace();
-  workspace.content.push({ id: "legacy-content", title: "Saved post", format: "LinkedIn", stream: "Personal LinkedIns", pillar: "Moments That Matter", stage: "Idea", publishDate: "", angle: "Saved notes", createdAt: "2026-08-01T00:00:00Z" });
-  const before = structuredClone(workspace);
-  const edited = applyAgentWorkspaceActions(workspace, [{ type: "update", collection: "content", recordId: "legacy-content", data: { title: "Updated title", owner: "Aby" } }]);
-  assert.equal(edited.workspace.content[0].stream, "Personal LinkedIns");
-  assert.equal(edited.workspace.content[0].pillar, "Moments That Matter");
-  assert.equal(edited.workspace.content[0].angle, "Saved notes");
-  assert.equal(edited.actions[0].data.stream, undefined);
-  assert.equal(edited.actions[0].data.pillar, undefined);
-  const reclassified = applyAgentWorkspaceActions(workspace, [{ type: "update", collection: "content", recordId: "legacy-content", data: { pillar: "AI Strategy & Business Alignment" } }]);
-  assert.equal(reclassified.workspace.content[0].stream, "Spej Authority-building content");
-  assert.equal(reclassified.workspace.content[0].pillar, "AI Strategy & Business Alignment");
-  assert.equal(reclassified.workspace.content[0].angle, "Saved notes");
-  assert.throws(() => applyAgentWorkspaceActions(workspace, [{ type: "update", collection: "content", recordId: "legacy-content", data: { pillar: "Human Interests" } }]), /shared Content category/);
-  assert.throws(() => applyAgentWorkspaceActions(reclassified.workspace, [{ type: "update", collection: "content", recordId: "legacy-content", data: { stream: "Personal LinkedIns" } }]), /shared Content workflow/);
-  assert.deepEqual(workspace, before);
-});
-
 test("SOSA cannot supply stable identity IDs", () => {
   for (const data of [
     { name: "Unsafe account", owner: "Aby", ownerProfileId: "someone-else" },

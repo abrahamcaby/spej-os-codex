@@ -3,7 +3,6 @@ import test from "node:test";
 import { GTM_AGENT_CONTRACT, createGtmAgentRequest, prepareGtmAgentProposal, readGtmAgentContext, runGtmAgentTurn } from "../lib/gtm-agent-contract";
 import { workspaceFingerprint } from "../lib/agent-session";
 import { cleanContacts } from "../lib/operations";
-import { ACTIVITY_CHANNELS, ACTIVITY_METRIC_TYPES } from "../lib/gtm-metrics";
 import type { WorkspaceState } from "../lib/types";
 
 const empty = (): WorkspaceState => ({ reminders: [], tasks: [], content: [], accounts: [], contacts: [], activities: [], opportunities: [], partnerships: [], projects: [], campaigns: [], marketingMetrics: [] });
@@ -105,23 +104,6 @@ test("shared request still gives the pilot its domain rules and bounded conversa
   assert.match(request.prompt,/Workspace evidence \(0 of 0 active records/);
   assert.match(request.prompt,/Never write strategicValue/);
   assert.match(request.prompt,/Official deterministic opportunity recommendations/);
-});
-
-test("SOSA describes one shared content workflow rather than separate personal publishing", async () => {
-  const { prompt } = await createGtmAgentRequest({ workspace: empty(), command: "Plan content" });
-  assert.match(prompt, /Content is one shared publishing workflow/);
-  assert.match(prompt, /preserve its stored stream and pillar unless the user explicitly asks to reclassify it/);
-  assert.doesNotMatch(prompt, /For Personal LinkedIns|Moments That Matter|Hero-Making Expertise/);
-});
-
-test("SOSA receives shared communication classifications and keeps incoming calls out of outbound claims", async () => {
-  const { prompt } = await createGtmAgentRequest({ workspace: empty(), command: "Log a call from the contact" });
-  assert.ok(prompt.includes(`Allowed activity metricType values: ${ACTIVITY_METRIC_TYPES.join(", ")}`));
-  assert.ok(prompt.includes(`Allowed channels: ${ACTIVITY_CHANNELS.join(", ")}`));
-  assert.match(prompt, /Incoming call connected only for a confirmed conversation initiated by the contact/);
-  assert.match(prompt, /not outbound outreach or a message reply/);
-  assert.match(prompt, /Preserve legacy lastContact/);
-  assert.match(prompt, /20,000 characters/);
 });
 
 test("priority recommendations are calculated across the full workspace before evidence truncation", async () => {

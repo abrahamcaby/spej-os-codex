@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { AiExecutionProvider, AiKeyProvider, AiModelOption } from "@/lib/types";
+import type { AiKeyProvider, AiModelOption } from "@/lib/types";
 import {
   configuredAiApiKey,
   type StoredSettings,
@@ -9,7 +9,6 @@ import { AI_PROVIDER_LABELS, DEFAULT_AI_MODELS, aiSupportsWebSearch, cleanAiMode
 import { aiProviderJson } from "@/lib/ai-provider-http";
 import { discoverAiModels } from "@/lib/server/ai-models";
 import { assertLocalAiContext } from "@/lib/ai-local-context";
-import { getCustomBackgroundAiStatus, runCustomBackgroundAi } from "@/lib/server/custom-background-ai";
 
 export type AiRunOptions = {
   prompt: string;
@@ -18,7 +17,7 @@ export type AiRunOptions = {
 };
 
 export type AiRunResult = {
-  provider: AiExecutionProvider;
+  provider: AiKeyProvider;
   model: string;
   text: string;
 };
@@ -276,11 +275,6 @@ export async function runConfiguredAi(
   const provider = settings.ai.provider;
   if (provider === "none")
     throw new AiNotConfiguredError("AI curation is off in Settings.");
-  if (provider === "custom") {
-    if (!getCustomBackgroundAiStatus().available)
-      throw new AiNotConfiguredError("Custom background AI is not configured. IT must install an approved adapter; no other provider was called.");
-    return runCustomBackgroundAi({ ...options, model: cleanAiModelOverride(settings.ai.model) });
-  }
   const key = configuredAiApiKey(settings, provider);
   if (!key && !isLocalAiProvider(provider))
     throw new AiNotConfiguredError(

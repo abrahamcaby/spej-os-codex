@@ -2,8 +2,6 @@
 
 **Status:** implementation handoff. This document describes the target company architecture; it does not claim that Microsoft 365, the existing SOSA, company identity, or canonical Spej OS services are connected in this repository.
 
-**Direction update — September 17, 2026:** the target is a standalone company OS. Mandatory reuse of the existing production Spej OS or SOSA is superseded; their adapter contracts remain optional references. IT selects the new build's canonical services and agent/provider runtime, while preserving the security and durability requirements below. Microsoft Graph and Plooms are not connected, and Plooms' execution and/or usage contract still needs confirmation. Leave existing production unchanged. For the current synthetic demo, run `npm ci`, then `npm run company-demo -- --dev --port=3102`; see [Company OS planning](COMPANY_OS_PLANNING.md).
-
 ## Current preview and production target
 
 | Area | Current local preview | Required production target |
@@ -11,8 +9,8 @@
 | Runtime | Next.js bound to loopback | Private, authenticated application behind the company gateway |
 | Users | One trusted local user; no login | Spej identity with tenant, user, role, and permission claims |
 | Home / Today | Demo profile and local records | Identity-backed projection of the signed-in employee's authorized work |
-| Records | Local SQLite and whole-workspace saves | Canonical, record-level services selected for the new build, with transactions and versions |
-| SOSA | Standalone pilot adapter and reviewed proposal logic | Selected SOSA runtime calling governed tools with the user's verified identity |
+| Records | Local SQLite and whole-workspace saves | Canonical, record-level Spej OS services with transactions and versions |
+| SOSA | Standalone pilot adapter and reviewed proposal logic | Existing SOSA calling governed tools with the user's verified identity |
 | Microsoft 365 | Not connected | Separate, least-privilege Graph connector and Teams channel adapter |
 | Background work | In-process local scheduler | Durable queue workers with retries, dead-letter handling, and monitoring |
 | Secrets | Local settings/environment | Managed secret store; encrypted at rest and never returned to the browser |
@@ -123,8 +121,8 @@ The approved proposal is immutable and bound to the principal, tenant, exact ope
 ## Deployment units
 
 - **Web application:** stateless UI and authenticated API entry points.
-- **Canonical adapter:** connects GTM/CRM/project concepts to the new build's approved canonical services; reuse is optional, ownership and authorization are not.
-- **SOSA adapter:** registers governed read and action tools with the selected agent runtime.
+- **Canonical adapter:** connects GTM/CRM/project concepts to existing Spej OS services.
+- **SOSA adapter:** registers governed read and action tools with the existing agent.
 - **Integration receiver:** validates webhook notifications and enqueues work.
 - **Workers:** perform Graph delta reads, transcript processing, reconciliation, and retries.
 - **Stores:** canonical records, proposal state, integration state/cursors, audit, and telemetry.
@@ -141,4 +139,4 @@ Do not depend on local files, SQLite, or an in-process scheduler for multi-insta
 - Defined retention for message excerpts, transcripts, proposals, audit records, and dead letters.
 - Feature flags and per-tenant connector kill switches.
 
-Release gates and operating steps are in [Deployment runbook](DEPLOYMENT_RUNBOOK.md). [Migration and rollback](MIGRATION_AND_ROLLBACK.md) preserves historical cutover guidance for a separately approved migration; it does not authorize changing the existing production system.
+Release gates and operating steps are in [Deployment runbook](DEPLOYMENT_RUNBOOK.md); staged cutover is in [Migration and rollback](MIGRATION_AND_ROLLBACK.md).

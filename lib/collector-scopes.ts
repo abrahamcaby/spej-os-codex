@@ -7,7 +7,7 @@ type FeedSettings = Pick<PublicSettings, "industry" | "mentions"> & {
   ai: Pick<PublicSettings["ai"], "provider" | "model"> & Partial<Pick<PublicSettings["ai"], "localBaseUrls">>;
 };
 
-export function industryCacheScope(settings: FeedSettings, customProviderScope = "") {
+export function industryCacheScope(settings: FeedSettings) {
   return collectionScope("industry-response-v1", [
     settings.industry.description,
     ...settings.industry.sources.map((source) => `${source.id}:${source.url}`),
@@ -15,12 +15,11 @@ export function industryCacheScope(settings: FeedSettings, customProviderScope =
     ...settings.industry.excludedTerms.map((term) => `exclude:${term}`),
     `limit:${settings.industry.dailyLimit}`,
     `ai:${settings.ai.provider}:${settings.ai.model}`,
-    ...(settings.ai.provider === "custom" ? [`custom:${customProviderScope}`] : []),
     ...(isLocalAiProvider(settings.ai.provider) ? [settings.ai.localBaseUrls?.[settings.ai.provider] || ""] : []),
   ]);
 }
 
-export function mentionsCacheScope(settings: FeedSettings, customProviderScope = "") {
+export function mentionsCacheScope(settings: FeedSettings) {
   const profiles = configuredMentionProfiles(settings.mentions);
   return collectionScope("mentions-response-v2-profiles", [
     `strict:${settings.mentions.strictMode}`,
@@ -38,7 +37,6 @@ export function mentionsCacheScope(settings: FeedSettings, customProviderScope =
     ...settings.industry.keywords.map((keyword) => `niche:${keyword}`),
     ...(settings.ai.provider !== "none" ? [`description:${settings.industry.description}`] : []),
     `ai:${settings.ai.provider}:${settings.ai.model}`,
-    ...(settings.ai.provider === "custom" ? [`custom:${customProviderScope}`] : []),
     ...(isLocalAiProvider(settings.ai.provider) ? [settings.ai.localBaseUrls?.[settings.ai.provider] || ""] : []),
   ]);
 }

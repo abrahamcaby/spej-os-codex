@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { mergeNewsletterTopics, normalizeNewsletterTitle, type NewsletterMentionRecord } from "./newsletter-intelligence";
-import type { AiExecutionProvider, NewsletterTopic } from "./types";
+import type { AiKeyProvider, NewsletterTopic } from "./types";
 import { newsletterPriority } from "./feed-priority";
 
 export type NewsletterIssueRecord = {
@@ -225,7 +225,7 @@ export function listNewsletterMentions(
     first_seen_at: string;
     importance_score: number | null;
     importance_reason: string | null;
-    curation_mode: "local" | AiExecutionProvider | null;
+    curation_mode: "local" | AiKeyProvider | null;
   }>;
   return rows.map((row): NewsletterMentionRecord => ({
     id: row.mention_id,

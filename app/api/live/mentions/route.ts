@@ -32,7 +32,6 @@ import { curateMentionsWithAi } from "@/lib/server/mention-curation";
 import { aiSupportsWebSearch } from "@/lib/ai-providers";
 import { localMentionPriority, sortFeedStories } from "@/lib/feed-priority";
 import { mentionsCacheScope } from "@/lib/collector-scopes";
-import { customBackgroundAiCacheScope } from "@/lib/server/custom-background-ai";
 import { listContentItems } from "@/lib/archive-store";
 import {
   preserveSavedMentionCuration,
@@ -220,8 +219,8 @@ async function collectMentions(
       provider: "Broad web research",
       state: "disabled",
       message: configuredAiReady(settings) && !aiSupportsWebSearch(settings.ai.provider)
-        ? "This provider summarizes verified mentions but does not support live web research; Google News and Bing News remain active."
-        : "AI web research is off or the selected provider is not configured; Google News and Bing News remain active.",
+        ? "This local provider summarizes verified mentions but cannot search the web; Google News and Bing News remain active."
+        : "AI web research is off or no key is configured; Google News and Bing News remain active.",
     };
   } else {
     try {
@@ -514,7 +513,7 @@ async function collectMentions(
 
 export async function GET(request: Request) {
   const settings = await readSettings();
-  const scope = mentionsCacheScope(settings, settings.ai.provider === "custom" ? customBackgroundAiCacheScope() : "");
+  const scope = mentionsCacheScope(settings);
   const forceRefresh = new URL(request.url).searchParams.get("refresh") === "1";
   if (!forceRefresh) {
     const cached = readCollectorSnapshot<LiveFeedResponse>(

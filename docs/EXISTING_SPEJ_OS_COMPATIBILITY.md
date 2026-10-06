@@ -1,14 +1,10 @@
 # Existing Spej OS compatibility
 
-**Direction update — September 17, 2026:** this is now a historical comparison and optional migration reference. The approved direction is a standalone new company OS, not mandatory reuse of current production Spej OS. That direction supersedes the reuse recommendations below; the matrix is not a verified inventory of connected dependencies. Leave existing production untouched. If migration or service reuse is separately approved, retain the compatibility, authorization, canonical ownership, approval/audit, and reconciliation gates here. The new build independently requires the [production architecture](PRODUCTION_ARCHITECTURE.md) and [deployment gates](DEPLOYMENT_RUNBOOK.md).
-
-For the current synthetic walkthrough, run `npm ci`, then `npm run company-demo -- --dev --port=3102`; see [Company OS planning](COMPANY_OS_PLANNING.md). Microsoft Graph and Plooms are not connected. This document does not establish production readiness or a completed upload.
-
 **Purpose:** keep the original Spej OS foundations while adding a simpler, role-based interface for company work and a focused GTM workspace.
 
 **Current state:** this repository is a working demo and integration specification. It does not replace or claim to be connected to the existing production services.
 
-## Historical implementation recommendation (superseded as the default)
+## Recommended implementation
 
 Use the existing Spej OS services as the production foundation. Add this repository's navigation, role-based My Work experience, GTM workflows, metrics, content operations, and reviewed SOSA actions as a new interface over the same canonical IDs and permissions.
 
@@ -41,7 +37,7 @@ Do not run two independent CRMs, project databases, task systems, permission sys
 | Light and dark branding plus mobile app link | Spej-branded responsive dashboard and dark-mode demo | Reuse approved company logos, fonts, colors, and application packaging. Mobile and Teams use the same APIs, permissions, actions, and records as the web interface. |
 | AI usage, cost, tenant plan, and entitlements | Deterministic-versus-model boundary and task-level model provenance | Keep administrative usage and entitlement services. Record model, version, prompt/tool policy, latency, outcome, and safe token/cost metadata; enforce tenant quotas and feature access outside model text. |
 
-## Compatibility acceptance gates for a separately approved migration
+## Compatibility acceptance gates
 
 Before replacing any existing screen or enabling writes:
 
@@ -62,7 +58,7 @@ Before replacing any existing screen or enabling writes:
 - SOSA reads only authorized context, prepares structured proposals, explains changes, and commits through deterministic tools after the required review.
 - Connector health and data coverage are visible so users can distinguish current information from stale, partial, or unavailable information.
 
-## Migration rule if separately approved
+## Migration rule
 
 Run the new interface read-only against a non-production copy first. Compare representative users, records, counts, stages, permissions, links, and source health with the current Spej OS. Enable narrowly scoped writes only after the result matches, then roll out by role and function behind feature flags.
 

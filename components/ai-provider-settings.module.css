@@ -5,7 +5,7 @@
 .modeCard { display: flex; align-items: flex-start; gap: 13px; margin-top: 22px; padding: 18px; border: 1px solid var(--blue-border); border-radius: 9px; background: var(--blue-soft); color: var(--blue); }
 .modeCard > svg { flex: 0 0 auto; margin-top: 1px; }
 .modeCard b { font-family: var(--serif); font-weight: 500; font-size: 18px; color: var(--ink); }
-.modeCard p { margin: 5px 0 0; max-width: 75ch; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.modeCard p { margin: 5px 0 0; max-width: 75ch; color: var(--muted); font-size: 10px; line-height: 1.6; }
 .local { background: var(--teal-soft); border-color: var(--positive-border); color: var(--teal); }
 .modelStatus { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 15px 0 0; color: var(--muted); font-size: 10px; }
 .modelStatus > button { flex: 0 0 auto; }

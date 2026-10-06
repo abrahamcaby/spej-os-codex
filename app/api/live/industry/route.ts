@@ -8,7 +8,6 @@ import { safeFetchText } from "@/lib/server/safe-fetch";
 import { freshIndustryDiscoveries, sortIndustryItems, splitIndustryLibrary, topicDiscoveryStatus } from "@/lib/industry";
 import { collectionScope } from "@/lib/collection-scope";
 import { industryCacheScope } from "@/lib/collector-scopes";
-import { customBackgroundAiCacheScope } from "@/lib/server/custom-background-ai";
 import { curateIndustryDiscoveries, selectDiverseIndustryDiscoveries } from "@/lib/industry-curation";
 import { listIndustryDiscoveries, pruneIndustryDiscoveries, upsertIndustryDiscoveries } from "@/lib/industry-store";
 import { curateIndustryWithAi } from "@/lib/server/industry-ai";
@@ -219,7 +218,7 @@ async function collectIndustry() {
 
 export async function GET(request: Request) {
   const settings = await readSettings();
-  const scope = industryCacheScope(settings, settings.ai.provider === "custom" ? customBackgroundAiCacheScope() : "");
+  const scope = industryCacheScope(settings);
   const forceRefresh = new URL(request.url).searchParams.get("refresh") === "1";
   if (!forceRefresh) {
     const cached = readCollectorSnapshot<LiveFeedResponse>(

@@ -1,4 +1,4 @@
-import type { AiExecutionProvider, AiKeyProvider, AiModelOption, AiProvider, LocalAiProvider, PublicSettings } from "./types";
+import type { AiKeyProvider, AiModelOption, AiProvider, LocalAiProvider, PublicSettings } from "./types";
 
 export const AI_KEY_PROVIDERS: AiKeyProvider[] = ["openai", "anthropic", "gemini", "xai", "lmstudio", "ollama"];
 export const AI_PROVIDER_LABELS: Record<AiProvider, string> = {
@@ -9,7 +9,6 @@ export const AI_PROVIDER_LABELS: Record<AiProvider, string> = {
   xai: "xAI · Grok",
   lmstudio: "LM Studio · local",
   ollama: "Ollama · local",
-  custom: "Custom provider · IT-managed",
 };
 export const DEFAULT_AI_MODELS: Record<AiKeyProvider, string> = {
   openai: "gpt-5-mini",
@@ -28,16 +27,12 @@ export function isAiKeyProvider(value: unknown): value is AiKeyProvider {
   return typeof value === "string" && AI_KEY_PROVIDERS.includes(value as AiKeyProvider);
 }
 
-export function isAiExecutionProvider(value: unknown): value is AiExecutionProvider {
-  return value === "custom" || isAiKeyProvider(value);
-}
-
 export function isLocalAiProvider(provider: AiProvider): provider is LocalAiProvider {
   return provider === "lmstudio" || provider === "ollama";
 }
 
 export function aiSupportsWebSearch(provider: AiProvider) {
-  return provider !== "none" && provider !== "custom" && !isLocalAiProvider(provider);
+  return provider !== "none" && !isLocalAiProvider(provider);
 }
 
 export function aiEnvironmentKey(provider: AiKeyProvider, environment: Record<string, string | undefined>) {
@@ -53,8 +48,7 @@ export function aiEnvironmentKey(provider: AiKeyProvider, environment: Record<st
 
 // A local selection is configured without a cloud API key. Availability is
 // checked against the running server before every inference, not fabricated here.
-export function isAiReady(ai: Pick<PublicSettings["ai"], "provider" | "keySet" | "customProvider">) {
-  if (ai.provider === "custom") return ai.customProvider?.available === true;
+export function isAiReady(ai: Pick<PublicSettings["ai"], "provider" | "keySet">) {
   return ai.provider !== "none" && (isLocalAiProvider(ai.provider) || Boolean(ai.keySet[ai.provider]));
 }
 

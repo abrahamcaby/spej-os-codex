@@ -17,12 +17,11 @@ import {
 } from "./operations";
 import { cleanTaskItems, completeTaskItems, hasOpenSubtasks, inheritedTaskAccess } from "./tasks";
 import { cleanMarketingMetrics, upsertMarketingMetric } from "./marketing-metrics";
-import { COMPANY_CONTENT_CATEGORIES, COMPANY_CONTENT_STREAM, normalizeContentCategory } from "./content-taxonomy";
+import { normalizeContentCategory } from "./content-taxonomy";
 import { cleanCampaigns } from "./campaigns";
 import { clientPlanIssues, taskBelongsToAccount } from "./client-relationships";
 import { metricDay, validMetricDate } from "./gtm-metrics";
 import { getTeamViewProfile } from "./team-views";
-import { ACTIVITY_MESSAGE_MAX_LENGTH } from "./communication-history";
 
 type RawAction = {
   type?: unknown;
@@ -96,7 +95,7 @@ function cleanContent(value: Record<string, unknown>): ContentItem | null {
   if (!title) return null;
   const stream = contentStreams.has(value.stream as ContentItem["stream"])
     ? value.stream as ContentItem["stream"]
-    : COMPANY_CONTENT_STREAM;
+    : "Spej Authority-building content";
   return {
     id: text(value.id, crypto.randomUUID(), 100),
     title,
@@ -132,22 +131,6 @@ function cleanCollectionRecord(collection: AgentWorkspaceCollection, value: Reco
   if (collection === "projects") return cleanProjects([value])[0] || null;
   if (collection === "campaigns") return cleanCampaigns([value])[0] || null;
   return cleanMarketingMetrics([{ ...value, updatedAt: new Date().toISOString() }])[0] || null;
-}
-
-function sharedContentData(data: Record<string, unknown>, current?: Record<string, unknown>): Record<string, unknown> {
-  if ("stream" in data && data.stream !== COMPANY_CONTENT_STREAM && data.stream !== current?.stream) {
-    throw new Error("New content belongs in the shared Content workflow. Historical content can keep its saved stream.");
-  }
-  const isCompanyCategory = COMPANY_CONTENT_CATEGORIES.includes(data.pillar as typeof COMPANY_CONTENT_CATEGORIES[number]);
-  if ("pillar" in data && !isCompanyCategory && data.pillar !== current?.pillar) {
-    throw new Error("Choose a supported shared Content category. Historical content can keep its saved category.");
-  }
-  // Only an explicit category change reclassifies that historical item. Normal
-  // edits (title, owner, stage, review, etc.) leave its stored taxonomy intact.
-  if (current && "pillar" in data && data.pillar !== current.pillar && isCompanyCategory) {
-    return { ...data, stream: COMPANY_CONTENT_STREAM };
-  }
-  return current ? data : { ...data, stream: COMPANY_CONTENT_STREAM };
 }
 
 function displayName(value: unknown) {
@@ -255,7 +238,6 @@ export function applyAgentWorkspaceActions(
     if (!actionTypes.has(type) || !collection) continue;
     if (type === "complete" && collection !== "tasks") continue;
     const rawData = record(raw.data);
-    if (collection === "activities" && typeof rawData.outcome === "string" && rawData.outcome.trim().length > ACTIVITY_MESSAGE_MAX_LENGTH) throw new Error(`An interaction message can contain at most ${ACTIVITY_MESSAGE_MAX_LENGTH.toLocaleString("en-US")} characters. Split the message before applying it.`);
     if ("archivedAt" in rawData) throw new Error("SOSA cannot archive or restore records through a proposal.");
     if ("ownerProfileId" in rawData || "approverProfileId" in rawData) throw new Error("Stable identity IDs must come from Spej identity mapping, not a SOSA proposal.");
     if (collection === "activities" && ("sourceArtifactId" in rawData || "sourceLabel" in rawData)) throw new Error("Activity source provenance is server-controlled and cannot be supplied or changed by a SOSA proposal.");
@@ -279,7 +261,6 @@ export function applyAgentWorkspaceActions(
     let data = type === "create" ? bindPreviewIdentity(resolveReferences(next, collection, rawData), rawData) : rawData;
 
     if (type === "create") {
-      if (collection === "content") data = sharedContentData(data);
       const cleaned = cleanCollectionRecord(collection, { ...data, id: crypto.randomUUID(), createdAt: new Date().toISOString() });
       if (!cleaned) continue;
       if (collection === "tasks") {
@@ -316,7 +297,6 @@ export function applyAgentWorkspaceActions(
     const index = findRecordIndex(items, raw);
     if (index < 0) continue;
     const current = items[index];
-    if (collection === "content") data = sharedContentData(data, current);
     if (type === "complete") {
       if (hasOpenSubtasks(next.tasks, current.id as string | number)) continue;
       const updated = completeTaskItems(next.tasks, current.id as string | number, { expectedDue: String(current.due || "") });

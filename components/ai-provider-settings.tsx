@@ -3,12 +3,12 @@
 import { useEffect, useId, useState } from "react";
 import { Cpu, Globe2, KeyRound, RefreshCw, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
 import type { AiKeyProvider, AiModelsResponse, AiProvider, PublicSettings, SettingsUpdate } from "@/lib/types";
-import { AI_KEY_PROVIDERS, AI_PROVIDER_LABELS, DEFAULT_AI_MODELS, DEFAULT_LOCAL_AI_URLS, isAiKeyProvider, isLocalAiProvider, localAiBaseUrl } from "@/lib/ai-providers";
+import { AI_KEY_PROVIDERS, AI_PROVIDER_LABELS, DEFAULT_AI_MODELS, DEFAULT_LOCAL_AI_URLS, isLocalAiProvider, localAiBaseUrl } from "@/lib/ai-providers";
 import { modelOverrideAfterProviderChange } from "@/lib/ai-settings";
 import { SettingsInput } from "@/components/settings-input";
 import styles from "./ai-provider-settings.module.css";
 
-export type AiSettingsDraft = NonNullable<SettingsUpdate["ai"]> & Pick<PublicSettings["ai"], "keySet" | "keySource" | "customProvider">;
+export type AiSettingsDraft = NonNullable<SettingsUpdate["ai"]> & Pick<PublicSettings["ai"], "keySet" | "keySource">;
 
 export function AiProviderSettings({ value, onChange }: {
   value: AiSettingsDraft;
@@ -17,11 +17,9 @@ export function AiProviderSettings({ value, onChange }: {
   const id = useId();
   const provider = value.provider;
   const local = isLocalAiProvider(provider);
-  const custom = provider === "custom";
-  const customAvailable = value.customProvider?.available === true;
-  const pendingKey = isAiKeyProvider(provider) ? value.apiKeys?.[provider] || "" : "";
-  const savedKey = isAiKeyProvider(provider) && Boolean(value.keySet[provider]);
-  const clearingKey = isAiKeyProvider(provider) && Boolean(value.clearKeys?.includes(provider));
+  const pendingKey = provider === "none" ? "" : value.apiKeys?.[provider] || "";
+  const savedKey = provider !== "none" && Boolean(value.keySet[provider]);
+  const clearingKey = provider !== "none" && Boolean(value.clearKeys?.includes(provider));
   const baseUrl = local ? value.localBaseUrls?.[provider] ?? DEFAULT_LOCAL_AI_URLS[provider] : "";
   const [reload, setReload] = useState(0);
   const [state, setState] = useState<{ provider: AiProvider; loading: boolean; data?: AiModelsResponse; error?: string }>({ provider: "none", loading: false });
@@ -29,8 +27,8 @@ export function AiProviderSettings({ value, onChange }: {
   useEffect(() => {
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
-      if (provider === "none" || (custom && !customAvailable)) { setState({ provider, loading: false }); return; }
-      if (!custom && !local && !pendingKey && (!savedKey || clearingKey)) {
+      if (provider === "none") { setState({ provider, loading: false }); return; }
+      if (!local && !pendingKey && (!savedKey || clearingKey)) {
         setState({ provider, loading: false });
         return;
       }
@@ -51,12 +49,12 @@ export function AiProviderSettings({ value, onChange }: {
       }
     }, pendingKey ? 650 : 0);
     return () => { window.clearTimeout(timer); controller.abort(); };
-  }, [provider, local, custom, customAvailable, pendingKey, savedKey, clearingKey, baseUrl, reload]);
+  }, [provider, local, pendingKey, savedKey, clearingKey, baseUrl, reload]);
 
   const active = state.provider === provider ? state : { provider, loading: false };
   const models = active.data?.models || [];
   const modelAvailable = !value.model || models.some((model) => model.id === value.model);
-  const defaultModel = active.data?.defaultModel || (isAiKeyProvider(provider) ? DEFAULT_AI_MODELS[provider] : "");
+  const defaultModel = active.data?.defaultModel || (provider === "none" ? "" : DEFAULT_AI_MODELS[provider]);
   const keyStatus = (keyProvider: AiKeyProvider) => value.keySource[keyProvider] === "environment"
     ? "Available from this computer’s environment"
     : value.keySet[keyProvider] ? "Saved privately on this computer" : "Not configured";
@@ -67,25 +65,24 @@ export function AiProviderSettings({ value, onChange }: {
       <div>
         <p className="eyebrow">Background intelligence</p>
         <h2>Choose your intelligence</h2>
-        <p>Rank Industry updates, explain and prioritize Mentions, and turn newsletters into deduplicated news. Use a built-in provider, an IT-managed service such as Plooms, or a model running on this computer. SOSA is configured separately.</p>
+        <p>Rank Industry updates, explain and prioritize Mentions, and turn newsletters into deduplicated news. Use a cloud provider or a model running on this computer.</p>
       </div>
     </div>
     <div className={styles.connectionGrid}>
       <div className="settings-field">
-        <label htmlFor={`${id}-provider`}>Background AI provider<small>Only this provider is used, after it is configured and these settings are saved.</small></label>
+        <label htmlFor={`${id}-provider`}>Active provider<small>Only this provider runs background AI tasks.</small></label>
         <select id={`${id}-provider`} name="cc-ai-provider-choice" autoComplete="off" value={provider} onChange={(event) => {
           const next = event.target.value as AiProvider;
           onChange({ ...value, provider: next, model: modelOverrideAfterProviderChange(provider, next, value.model) });
         }}>
           <option value="none">{AI_PROVIDER_LABELS.none}</option>
-          <optgroup label="Company provider"><option value="custom">{AI_PROVIDER_LABELS.custom}</option></optgroup>
           <optgroup label="Cloud providers">{AI_KEY_PROVIDERS.filter((item) => !isLocalAiProvider(item)).map((item) => <option key={item} value={item}>{AI_PROVIDER_LABELS[item]}</option>)}</optgroup>
           <optgroup label="On this computer">{AI_KEY_PROVIDERS.filter(isLocalAiProvider).map((item) => <option key={item} value={item}>{AI_PROVIDER_LABELS[item]}</option>)}</optgroup>
         </select>
       </div>
       <div className="settings-field">
-        <label htmlFor={`${id}-model`}>Model<small>{custom ? "Models explicitly allowed by your IT-managed adapter." : local ? "Only already-loaded local text models are listed." : "Live options from this provider’s API, using your key."}</small></label>
-        <select id={`${id}-model`} name="cc-ai-model-choice" autoComplete="off" value={value.model} disabled={provider === "none" || (custom && !customAvailable)} onChange={(event) => onChange({ ...value, model: event.target.value })}>
+        <label htmlFor={`${id}-model`}>Model<small>{local ? "Only already-loaded local text models are listed." : "Live options from this provider’s API, using your key."}</small></label>
+        <select id={`${id}-model`} name="cc-ai-model-choice" autoComplete="off" value={value.model} disabled={provider === "none"} onChange={(event) => onChange({ ...value, model: event.target.value })}>
           <option value="">Default{defaultModel ? ` · ${defaultModel}` : local ? " · available loaded model" : ""}</option>
           {value.model && !modelAvailable && <option value={value.model} disabled>{value.model} · {active.loading ? "checking availability" : "not in current list"}</option>}
           {models.map((model) => <option key={model.id} value={model.id}>{model.label}{local ? model.contextLength ? ` · ${model.contextLength.toLocaleString()} context` : " · context unknown" : ""}</option>)}
@@ -97,9 +94,8 @@ export function AiProviderSettings({ value, onChange }: {
       <div className={`${styles.modeCard} ${local ? styles.local : ""}`}>
         {local ? <Cpu size={23} /> : <Globe2 size={23} />}
         <div>
-          <b>{custom ? customAvailable ? `${value.customProvider?.label || "Custom provider"} · IT adapter installed` : "Custom provider · IT setup required" : local ? "Local curation, your model" : "Cloud curation + public-web research"}</b>
-          <p>{custom ? "Plooms or another company-approved service can summarize and rank collected content through a server-side adapter. IT manages its connection, credentials, approved models and usage policy. This initial custom-provider interface does not provide live web research; the built-in public-source collectors continue to run." : local ? "No paid API key required. Keep a text model loaded with enough context for the news being processed. The app checks its reported capacity and pauses oversized requests instead of cutting evidence or increasing your memory allocation. Built-in collectors find sources; local models summarize and rank them, without live web research." : "Cloud models can curate collected stories and research public mentions. Usage is billed by your provider; an API key is separate from a chat subscription."}</p>
-          {custom && <p>{customAvailable ? "Adapter installation is not proof of provider availability. Each request is validated, and failures pause AI processing without switching to another provider." : "Not configured — IT must implement and install the approved adapter. Saving this selection does not connect Plooms or send content to another provider."}</p>}
+          <b>{local ? "Local curation, your model" : "Cloud curation + public-web research"}</b>
+          <p>{local ? "No paid API key required. Keep a text model loaded with enough context for the news being processed. The app checks its reported capacity and pauses oversized requests instead of cutting evidence or increasing your memory allocation. Built-in collectors find sources; local models summarize and rank them, without live web research." : "Cloud models can curate collected stories and research public mentions. Usage is billed by your provider; an API key is separate from a chat subscription."}</p>
         </div>
       </div>
 
@@ -115,25 +111,24 @@ export function AiProviderSettings({ value, onChange }: {
         </div>
       </div>}
 
-      {(!custom || customAvailable) && <div className={styles.modelStatus} aria-live="polite">
-        <div>{active.loading ? <span>Checking available models…</span> : active.error ? <span className={styles.error}>{active.error}</span> : active.data ? <span>{models.length ? `${models.length} ${local ? "loaded local" : custom ? "IT-approved" : "available text"} model${models.length === 1 ? "" : "s"}` : custom ? "No approved models are available. Ask IT to check the adapter." : local ? "No loaded local text models found. Load one in your model app, then reload this list." : "No compatible text models were returned for this key."}{active.data.cached ? " · cached" : ""}</span> : <span>{custom ? "Loading the IT-approved model list…" : local ? "Checking the local server…" : "Add a key below to load your model choices. Default remains available."}</span>}</div>
+      <div className={styles.modelStatus} aria-live="polite">
+        <div>{active.loading ? <span>Checking available models…</span> : active.error ? <span className={styles.error}>{active.error}</span> : active.data ? <span>{models.length ? `${models.length} ${local ? "loaded local" : "available text"} model${models.length === 1 ? "" : "s"}` : local ? "No loaded local text models found. Load one in your model app, then reload this list." : "No compatible text models were returned for this key."}{active.data.cached ? " · cached" : ""}</span> : <span>{local ? "Checking the local server…" : "Add a key below to load your model choices. Default remains available."}</span>}</div>
         <button className="button button-outline" type="button" disabled={active.loading} onClick={() => setReload((current) => current + 1)}><RefreshCw size={13} className={active.loading ? styles.spin : undefined} /> Reload models</button>
-      </div>}
-      {custom && <p className={styles.modelStatus}>Ask IT to follow docs/CUSTOM_BACKGROUND_AI.md, then reload this page after setup.</p>}
+      </div>
       {value.model && active.data && !modelAvailable && <p className={styles.error}>The saved model is not available in this list. Choose Default or another available model before running AI tasks.</p>}
     </>}
 
-    {!custom && <div className={`source-editor ${styles.keys}`}>
+    <div className={`source-editor ${styles.keys}`}>
       <div className="source-editor-head"><b><KeyRound size={13} /> Cloud provider keys</b><span>Only your selected provider is called.</span></div>
       {AI_KEY_PROVIDERS.filter((item) => !isLocalAiProvider(item)).map((item) => <div className={`ai-key-row ${provider === item ? styles.selectedKey : ""}`} key={item}>
         <div><b>{AI_PROVIDER_LABELS[item]}{provider === item && <span className={styles.activeBadge}>Active</span>}</b><small>{keyStatus(item)}</small></div>
         <SettingsInput aria-label={`${AI_PROVIDER_LABELS[item]} API key`} fieldKey={`${item}-provider-key`} type="password" value={value.apiKeys?.[item] || ""} placeholder={value.keySet[item] ? "Configured · leave blank to keep" : "Paste an API key"} onChange={(event) => onChange({ ...value, apiKeys: { ...value.apiKeys, [item]: event.target.value }, clearKeys: value.clearKeys?.filter((entry) => entry !== item) })} />
         {value.keySource[item] === "settings" && <button className="text-button danger" type="button" onClick={() => onChange({ ...value, apiKeys: { ...value.apiKeys, [item]: "" }, clearKeys: [...new Set([...(value.clearKeys || []), item])], keySet: { ...value.keySet, [item]: false }, keySource: { ...value.keySource, [item]: "none" } })}><Trash2 size={13} /> Clear saved key</button>}
       </div>)}
-    </div>}
+    </div>
     <div className="settings-caveat">
       <ShieldCheck size={17} />
-      <p>{custom ? "Custom credentials and destinations are managed by IT on the server, not entered in this form." : "Saved keys stay server-side and are never sent back to your browser."} Newsletter text, with email addresses and subscriber tracking links masked, goes only to your selected provider. Tasks, reminders, and other private connector content are not sent. {local ? "Local endpoints are restricted to this computer; disable LM Link, remote forwarding, or other proxy features in your model app if you want processing to stay on this computer. This app does not download or load models for you." : "Background processing pauses on provider failure, while saved stories remain available."}</p>
+      <p>Saved keys stay server-side and are never sent back to your browser. Newsletter text, with email addresses and subscriber tracking links masked, goes only to your selected provider. Tasks, reminders, and other private connector content are not sent. {local ? "Local endpoints are restricted to this computer; disable LM Link, remote forwarding, or other proxy features in your model app if you want processing to stay on this computer. This app does not download or load models for you." : "Background processing pauses on provider failure, while saved stories remain available."}</p>
     </div>
   </div>;
 }

@@ -1,11 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import "../components/task-work.css";
 import "../components/relationship-context-panel.css";
 import "../components/customer-development-panels.css";
-import "../components/communication-history.css";
-import "../components/activity-dictation.css";
-import "../components/connections-settings.css";
 
 export const metadata: Metadata = {
   title: "Spej OS Preview",

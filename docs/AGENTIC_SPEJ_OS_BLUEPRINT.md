@@ -1,7 +1,5 @@
 # Agentic Spej OS blueprint
 
-**Current direction and implementation order:** see the [September 21 CRM recommendations](AGENTIC_CRM_RECOMMENDATIONS.md). Spej OS is now a standalone build; inherited requirements below to reuse the existing production Spej OS or SOSA services are optional integration references, not prerequisites. The evidence, authorization, approval and durability controls still apply. Neither document claims those production services are implemented.
-
 **Status:** implementation blueprint for the private Spej GitHub handoff. This document does not claim that the local preview contains a durable production agent runtime.
 
 The [unified employee workspace vision](UNIFIED_EMPLOYEE_WORKSPACE_VISION.md) supplies the broader product objective: employees should be able to find context, create outputs, review actions and complete work from Spej OS. Use its end-to-end pilot workflows to prioritize the runtime work here; a larger tool catalogue alone is not the outcome.

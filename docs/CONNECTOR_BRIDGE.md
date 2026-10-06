@@ -6,7 +6,7 @@ This bridge is optional and separate from the daily snapshot of Industry, Mentio
 
 ## Setup
 
-1. Run Control Center and open **Settings → Integrations & connections → Advanced · Local summary bridge**. This existing summary bridge is separate from the planning-only personal/company connection catalog above it.
+1. Run Control Center and open **Settings → Integrations**.
 2. Add the exact source labels the automation will use, such as `Gmail`, `Slack`, `Granola`, `Google Calendar`, `Apple Messages`, or `Computer History`.
 3. Save Settings.
 4. Choose **Copy setup prompt** and paste it into Codex, or use the JSON contract below from another local automation.

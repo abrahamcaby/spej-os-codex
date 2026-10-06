@@ -6,11 +6,11 @@ import {
   isMentionProviderWrapper,
   normalizeSignal,
 } from "./mention-filter";
-import type { AiExecutionProvider, LiveStory, MentionIdentityProfile } from "./types";
+import type { AiKeyProvider, LiveStory, MentionIdentityProfile } from "./types";
 
 export type MentionBackfillOptions = {
   scope: string;
-  provider: AiExecutionProvider;
+  provider: AiKeyProvider;
   now: string;
   windowDays: number;
   limit?: number;

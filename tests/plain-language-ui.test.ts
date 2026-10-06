@@ -26,7 +26,7 @@ test("CRM and pipeline expose clear account, source, and deal-priority language"
   const crm = renderToStaticMarkup(createElement(RelationshipsView, {
     accounts, setAccounts: noop, contacts, setContacts: noop, activities: [], setActivities: noop,
     campaigns: [], tasks: [], opportunities: [], projects: [], partnerships: [], goTo: noop, addTask: noop,
-    initialFocus: "people",
+    initialFocus: "c",
   }));
   for (const label of ["CRM", "Accounts", "People", "Activity", "Account link", "Source category", "Person status"]) assert.ok(crm.includes(label), label);
   assert.ok(!crm.includes(">Client Follow-ups<"));

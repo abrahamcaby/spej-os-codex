@@ -8,8 +8,7 @@ import type {
   ProjectItem,
   SocialActionType,
 } from "./types";
-import { ACTIVITY_CHANNELS, ACTIVITY_METRIC_TYPES, ACTIVITY_PURPOSES, CONTACT_LIFECYCLES, validMetricDate } from "./gtm-metrics";
-import { ACTIVITY_MESSAGE_MAX_LENGTH } from "./communication-history";
+import { ACTIVITY_METRIC_TYPES, ACTIVITY_PURPOSES, CONTACT_LIFECYCLES, validMetricDate } from "./gtm-metrics";
 import { CLIENT_STATUSES, CHECK_IN_CADENCES, OUTREACH_PREFERENCES } from "./client-relationships";
 import { PARTNER_CATEGORIES, PROJECT_DDD_PHASES, PROJECT_PLAYBOOKS, PROJECT_TYPES, PROJECT_WORK_AREAS, SALES_ROUTES, projectDefaults } from "./gtm-navigation";
 import { cleanAccountContext, cleanActivityContext, cleanContactContext, cleanDeliveryContext, cleanOpportunityContext, pastRelationshipDate } from "./relationship-context";
@@ -87,6 +86,7 @@ const accountTypes = ["Prospect", "Client", "Partner", "Network", "Other"] as co
 const accountStatuses = ["Active", "Nurture", "Inactive"] as const;
 const companySizeBands = ["Unknown", "1-49", "50-249", "250-999", "1,000-4,999", "5,000+"] as const;
 const strengths = ["New", "Developing", "Strong", "Dormant"] as const;
+const channels = ["LinkedIn 5-3-1", "LinkedIn", "Email", "Meeting", "Call", "Referral", "Event", "Content", "Other"] as const;
 const buyingRoles = ["Decision Maker", "Champion", "Influencer", "Technical Evaluator", "Other"] as const;
 const socialActions = ["Comment", "Connect", "DM", "Video / audio DM", "Profile review", "Share resource", "Other"] as const satisfies readonly SocialActionType[];
 const opportunityStages = ["Explore", "Validate", "Qualify", "Shape & Estimate", "Proposal & Decision", "Contracting", "Closed Won", "Closed Lost"] as const;
@@ -141,7 +141,7 @@ export function cleanActivities(value: unknown): ActivityItem[] {
   return list(value, "Activities", (item) => {
     const summary = text(item.summary, "", 1_000);
     if (!summary) return null;
-    return { ...cleanActivityContext(item), id: id(item.id), accountId: text(item.accountId, "", 100), contactId: text(item.contactId, "", 100), channel: choice(item.channel, ACTIVITY_CHANNELS, "Other"), actionType: item.actionType ? choice(item.actionType, socialActions, "Other") : undefined, metricType: ACTIVITY_METRIC_TYPES.includes(item.metricType as NonNullable<ActivityItem["metricType"]>) ? item.metricType as ActivityItem["metricType"] : undefined, purpose: item.purpose === undefined ? undefined : choice(item.purpose, ACTIVITY_PURPOSES, "Unclassified"), owner: text(item.owner, "", 120) || undefined, ownerProfileId: text(item.ownerProfileId, "", 200) || undefined, campaignId: text(item.campaignId, "", 100) || undefined, opportunityId: text(item.opportunityId, "", 100) || undefined, projectId: text(item.projectId, "", 100) || undefined, sourceArtifactId: text(item.sourceArtifactId, "", 100) || undefined, sourceLabel: text(item.sourceLabel, "", 200) || undefined, summary, outcome: text(item.outcome, "", ACTIVITY_MESSAGE_MAX_LENGTH), occurredAt: item.sourceDateKnown === false ? "" : pastRelationshipDate(item.occurredAt), createdAt: timestamp(item.createdAt), archivedAt: archive(item.archivedAt) };
+    return { ...cleanActivityContext(item), id: id(item.id), accountId: text(item.accountId, "", 100), contactId: text(item.contactId, "", 100), channel: choice(item.channel, channels, "Other"), actionType: item.actionType ? choice(item.actionType, socialActions, "Other") : undefined, metricType: ACTIVITY_METRIC_TYPES.includes(item.metricType as NonNullable<ActivityItem["metricType"]>) ? item.metricType as ActivityItem["metricType"] : undefined, purpose: item.purpose === undefined ? undefined : choice(item.purpose, ACTIVITY_PURPOSES, "Unclassified"), owner: text(item.owner, "", 120) || undefined, ownerProfileId: text(item.ownerProfileId, "", 200) || undefined, campaignId: text(item.campaignId, "", 100) || undefined, opportunityId: text(item.opportunityId, "", 100) || undefined, projectId: text(item.projectId, "", 100) || undefined, sourceArtifactId: text(item.sourceArtifactId, "", 100) || undefined, sourceLabel: text(item.sourceLabel, "", 200) || undefined, summary, outcome: text(item.outcome, "", 1_000), occurredAt: item.sourceDateKnown === false ? "" : pastRelationshipDate(item.occurredAt), createdAt: timestamp(item.createdAt), archivedAt: archive(item.archivedAt) };
   });
 }
 

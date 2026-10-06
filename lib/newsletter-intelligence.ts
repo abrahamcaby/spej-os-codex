@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { AiExecutionProvider, NewsletterFeedResponse, NewsletterSourceLink, NewsletterTopic } from "./types";
+import type { AiKeyProvider, NewsletterFeedResponse, NewsletterSourceLink, NewsletterTopic } from "./types";
 import { boundedPriority, newsletterPriority, sortFeedStories } from "./feed-priority";
 
 export type GmailMessagePart = {
@@ -14,7 +14,7 @@ export type ExtractedNewsletterLink = {
   context: string;
   importanceScore?: number;
   importanceReason?: string;
-  curationMode?: "local" | AiExecutionProvider;
+  curationMode?: "local" | AiKeyProvider;
 };
 
 export type NewsletterAiLink = { id: string; url: string; title: string };
@@ -61,7 +61,7 @@ export function prepareNewsletterForAi(input: { html?: string; text?: string }) 
   return { bodyText: body.slice(0, 50_000), links };
 }
 
-export function validateNewsletterAiStories(value: unknown, links: NewsletterAiLink[], provider?: AiExecutionProvider) {
+export function validateNewsletterAiStories(value: unknown, links: NewsletterAiLink[], provider?: AiKeyProvider) {
   if (!value || typeof value !== "object" || Array.isArray(value) ||
       !Array.isArray((value as { stories?: unknown }).stories))
     throw new Error("Newsletter AI did not return a stories list.");
@@ -104,7 +104,7 @@ export type NewsletterMentionRecord = {
   firstSeenAt: string;
   importanceScore?: number;
   importanceReason?: string;
-  curationMode?: "local" | AiExecutionProvider;
+  curationMode?: "local" | AiKeyProvider;
 };
 
 const trackingParameters = new Set([
@@ -430,7 +430,7 @@ export function mergeNewsletterTopics(
 export function applyNewsletterAiGroups(
   value: unknown,
   topics: NewsletterTopic[],
-  provider: AiExecutionProvider,
+  provider: AiKeyProvider,
 ) {
   if (!value || typeof value !== "object" || Array.isArray(value) ||
       !Array.isArray((value as { groups?: unknown }).groups))
@@ -473,7 +473,7 @@ export function applyNewsletterAiGroups(
 export function applyNewsletterAiPriorities(
   value: unknown,
   topics: NewsletterTopic[],
-  provider: AiExecutionProvider,
+  provider: AiKeyProvider,
 ) {
   if (!value || typeof value !== "object" || Array.isArray(value) ||
       !Array.isArray((value as { priorities?: unknown }).priorities))

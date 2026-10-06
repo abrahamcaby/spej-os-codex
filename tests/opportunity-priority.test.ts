@@ -135,16 +135,8 @@ test("outreach, unknown source dates, invalid dates and future activity cannot r
     activity({ archivedAt: "2026-09-01T12:00:00Z" }),
   ];
   for (const candidate of excluded) assert.equal(engagementPriority([candidate]).actionUrgency, null, JSON.stringify(candidate));
-  for (const metricType of ["Reply received", "Meeting held", "Call connected", "Incoming call connected", "Check-in completed"] as const) {
+  for (const metricType of ["Reply received", "Meeting held", "Call connected", "Check-in completed"] as const) {
     assert.equal(engagementPriority([activity({ metricType })]).actionUrgency, 100);
-  }
-});
-
-test("incoming-call evidence requires a known actual date and the same buying relationship", () => {
-  const incoming = activity({ metricType: "Incoming call connected", channel: "Call" });
-  assert.equal(engagementPriority([incoming]).actionUrgency, 100);
-  for (const changes of [{ contactId: "another-person", opportunityId: undefined }, { opportunityId: "another-opportunity" }, { accountId: "another-account" }, { occurredAt: "" }, { sourceDateKnown: false }, { occurredAt: "2026-09-03" }, { archivedAt: "2026-09-01T12:00:00Z" }]) {
-    assert.equal(engagementPriority([{ ...incoming, ...changes }]).actionUrgency, null);
   }
 });
 

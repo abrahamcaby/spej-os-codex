@@ -1,13 +1,12 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
-import type { AiExecutionProvider, AiModelsResponse } from "@/lib/types";
+import type { AiKeyProvider, AiModelsResponse } from "@/lib/types";
 import { defaultAiModel, isLocalAiProvider, localAiBaseUrl } from "@/lib/ai-providers";
 import { fetchAiModels } from "@/lib/ai-model-discovery";
 import { configuredAiApiKey, type StoredSettings } from "@/lib/server/settings";
-import { discoverCustomBackgroundAiModels } from "@/lib/server/custom-background-ai";
 
-type DiscoveryOptions = { provider?: AiExecutionProvider; apiKey?: string; baseUrl?: string; refresh?: boolean; useSavedKey?: boolean };
+type DiscoveryOptions = { provider?: AiKeyProvider; apiKey?: string; baseUrl?: string; refresh?: boolean; useSavedKey?: boolean };
 const modelCache = new Map<string, { expiresAt: number; payload: AiModelsResponse }>();
 const pending = new Map<string, Promise<AiModelsResponse>>();
 
@@ -16,11 +15,6 @@ export async function discoverAiModels(settings: StoredSettings, options: Discov
   if (provider === "none") return {
     provider, models: [], defaultModel: "", checkedAt: new Date().toISOString(), cached: false, localOnly: false,
   };
-  if (provider === "custom") {
-    if (options.apiKey !== undefined || options.baseUrl !== undefined)
-      throw new Error("Custom provider credentials and destinations are configured by IT on the server, not through this form.");
-    return discoverCustomBackgroundAiModels();
-  }
   const local = isLocalAiProvider(provider);
   const baseUrl = local ? localAiBaseUrl(provider, options.baseUrl ?? settings.ai.localBaseUrls[provider]) : undefined;
   // The selected provider can only use its own saved/environment key. A draft

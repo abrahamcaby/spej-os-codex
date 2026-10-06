@@ -12,7 +12,7 @@ import type {
 import { projectDddPhase, projectPlaybook, projectType } from "./gtm-navigation";
 import { accountRelationship } from "./client-relationships";
 import { evaluateOpportunityPriority } from "./opportunity-priority";
-import { taskBelongsToWorkspace, taskCategoryForDisplay, taskVisibilityLabel, taskWorkspaceLabel } from "./tasks";
+import { taskBelongsToWorkspace, taskVisibilityLabel, taskWorkspaceLabel } from "./tasks";
 
 export type AttentionTab = "tasks" | "delivery-work" | "relationships" | "pipeline" | "partnerships" | "projects" | "campaigns" | "content";
 export type AttentionSeverity = "critical" | "high" | "normal";
@@ -131,7 +131,7 @@ export function buildDirectorAttention(input: DirectorAttentionInput) {
 
   for (const task of input.tasks) {
     if (task.done) continue;
-    const statusDetail = task.status && task.status !== "Not Started" ? task.status : taskCategoryForDisplay(task);
+    const statusDetail = task.status && task.status !== "Not Started" ? task.status : task.category || "General";
     items.push({
       id: `task:${task.id}`,
       kind: "task",
@@ -144,7 +144,7 @@ export function buildDirectorAttention(input: DirectorAttentionInput) {
       tab: taskBelongsToWorkspace(task, input.projects, "delivery") ? "delivery-work" : "tasks",
       recordId: task.id,
       workspaceLabel: taskWorkspaceLabel(task, input.projects),
-      categoryLabel: taskCategoryForDisplay(task),
+      categoryLabel: task.category || "General",
       visibilityLabel: taskVisibilityLabel(task),
     });
   }

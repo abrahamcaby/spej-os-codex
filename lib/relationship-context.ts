@@ -222,7 +222,7 @@ export function accountEngagementDates(account: AccountItem, activities: Activit
   return {
     lastBuyerResponse: last(["Reply received"]),
     lastSellerOutreach: last(["Outreach sent", "Follow-up sent", "Call attempted", "Connection requested"]),
-    lastSubstantiveConversation: last(["Meeting held", "Call connected", "Incoming call connected", "Check-in completed"]),
+    lastSubstantiveConversation: last(["Meeting held", "Call connected", "Check-in completed"]),
     nextAgreedStep: day(account.nextMeetingDate) && account.nextMeetingDate! >= today ? account.nextMeetingDate! : "",
     lastCapturedAt: related.map((activity) => capturedTimestamp(activity.capturedAt, today)).filter(Boolean).sort().at(-1) || "",
   };
@@ -241,7 +241,7 @@ export function outreachGuard(account: AccountItem, activities: ActivityItem[], 
   const cutoffDate = new Date(`${today}T12:00:00Z`);
   cutoffDate.setUTCDate(cutoffDate.getUTCDate() - 7);
   const cutoff = Number.isFinite(cutoffDate.getTime()) ? cutoffDate.toISOString().slice(0, 10) : today;
-  const recent = activities.filter((activity) => !activity.archivedAt && activity.accountId === account.id && activity.sourceDateKnown !== false && pastRelationshipDate(activity.occurredAt, today) && activity.occurredAt >= cutoff && ["Outreach sent", "Follow-up sent", "Reply received", "Call connected", "Incoming call connected"].includes(activity.metricType || ""))
+  const recent = activities.filter((activity) => !activity.archivedAt && activity.accountId === account.id && activity.sourceDateKnown !== false && pastRelationshipDate(activity.occurredAt, today) && activity.occurredAt >= cutoff && ["Outreach sent", "Follow-up sent", "Reply received", "Call connected"].includes(activity.metricType || ""))
     .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))[0];
   if (recent) reasons.push(`Review recent ${recent.metricType?.toLowerCase()} on ${recent.occurredAt}${recent.owner ? `, recorded by ${recent.owner}` : ""}, and coordinate the agreed next step before new outreach.`);
   return { blocked: reasons.length > 0, reasons };

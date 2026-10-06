@@ -5,7 +5,6 @@ import type {
   PersonalContentPillar,
 } from "./types";
 
-// Retained only to read historical records, not as a separate publishing workflow.
 export const PERSONAL_CONTENT_PILLARS: PersonalContentPillar[] = [
   "Moments That Matter",
   "Hero-Making Expertise",
@@ -47,16 +46,6 @@ export const AUTHORITY_CONTENT_CATEGORIES: AuthorityContentCategory[] = [
   "Workforce, Role Redesign & Incentives",
   "Unassigned",
 ];
-
-// Keep the stored value stable while presenting one shared Content workflow.
-export const COMPANY_CONTENT_STREAM: ContentStream = "Spej Authority-building content";
-export const COMPANY_CONTENT_CATEGORIES: readonly ContentCategory[] = AUTHORITY_CONTENT_CATEGORIES;
-
-export function contentCategoryLabel(category: ContentCategory): string {
-  return COMPANY_CONTENT_CATEGORIES.includes(category as AuthorityContentCategory)
-    ? category
-    : "Saved category";
-}
 
 export function contentCategoriesForStream(stream: ContentStream): ContentCategory[] {
   return stream === "Personal LinkedIns"

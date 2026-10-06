@@ -7,8 +7,7 @@ import {
 } from "@/lib/industry-ai-cache";
 import { parseAiJson, runConfiguredAi } from "@/lib/server/ai";
 import type { StoredSettings } from "@/lib/server/settings";
-import { customBackgroundAiCacheScope } from "@/lib/server/custom-background-ai";
-import type { AiExecutionProvider } from "@/lib/types";
+import type { AiKeyProvider } from "@/lib/types";
 
 export type AiIndustrySelection = {
   discoveryId: string;
@@ -19,7 +18,7 @@ export type AiIndustrySelection = {
 type CachedIndustrySelection = {
   expiresAt: number;
   result: Promise<{
-    provider: AiExecutionProvider;
+    provider: AiKeyProvider;
     selections: AiIndustrySelection[];
   }>;
 };
@@ -79,10 +78,7 @@ export async function curateIndustryWithAi(
   const now = options.now ?? Date.now();
   const bounded = candidates.slice(0, 120);
   const key = industryAiCacheKey(
-    {
-      ...settings.ai,
-      customProviderScope: settings.ai.provider === "custom" ? customBackgroundAiCacheScope() : undefined,
-    },
+    settings.ai,
     bounded,
     { ...options, now },
   );

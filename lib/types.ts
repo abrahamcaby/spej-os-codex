@@ -5,10 +5,8 @@ export type IndustrySource = {
   url: string;
 };
 
-export type AiProvider = "none" | "openai" | "anthropic" | "gemini" | "xai" | "lmstudio" | "ollama" | "custom";
-export type AiExecutionProvider = Exclude<AiProvider, "none">;
-// Custom provider credentials belong to its server-side adapter, never browser settings.
-export type AiKeyProvider = Exclude<AiProvider, "none" | "custom">;
+export type AiProvider = "none" | "openai" | "anthropic" | "gemini" | "xai" | "lmstudio" | "ollama";
+export type AiKeyProvider = Exclude<AiProvider, "none">;
 export type LocalAiProvider = Extract<AiKeyProvider, "lmstudio" | "ollama">;
 export type AiModelOption = {
   id: string;
@@ -107,8 +105,6 @@ export type PublicSettings = {
     localBaseUrls: Record<LocalAiProvider, string>;
     keySet: Record<AiKeyProvider, boolean>;
     keySource: Record<AiKeyProvider, "none" | "settings" | "environment">;
-    /** Server-derived display metadata only; never client authorization. */
-    customProvider?: { available: boolean; label: string };
   };
   dailyBrief: {
     sourceLabels: string[];
@@ -166,7 +162,7 @@ export type LiveStory = {
   importanceScore?: number;
   importanceReason?: string;
   aiSummary?: string;
-  curationMode?: "local" | AiExecutionProvider;
+  curationMode?: "local" | AiKeyProvider;
   collectionScope?: string;
   workflow?: ContentWorkflow;
 };
@@ -197,7 +193,7 @@ export type LiveFeedResponse = {
   freshnessHours?: number;
   discoveredCount?: number;
   surfacedLimit?: number;
-  curationMode?: "local" | AiExecutionProvider;
+  curationMode?: "local" | AiKeyProvider;
   archivedItems?: LiveStory[];
   archiveCount?: number;
   historyItems?: LiveStory[];
@@ -208,8 +204,8 @@ export type NewsletterFeedResponse = {
   configured: boolean;
   connected: boolean;
   aiConfigured?: boolean;
-  aiProvider?: AiExecutionProvider;
-  curationMode?: "local" | AiExecutionProvider;
+  aiProvider?: AiKeyProvider;
+  curationMode?: "local" | AiKeyProvider;
   checkedAt: string;
   items: NewsletterTopic[];
   archivedItems: NewsletterTopic[];
@@ -269,7 +265,7 @@ export type NewsletterTopic = {
   importanceScore?: number;
   importanceBaseScore?: number;
   importanceReason?: string;
-  curationMode?: "local" | AiExecutionProvider;
+  curationMode?: "local" | AiKeyProvider;
   receivedAt: string;
   url: string;
   gmailUrl: string;
@@ -606,9 +602,9 @@ export type ActivityItem = {
   id: string;
   accountId: string;
   contactId: string;
-  channel: "LinkedIn 5-3-1" | "LinkedIn" | "Email" | "Text / SMS" | "WhatsApp" | "Meeting" | "Call" | "Referral" | "Event" | "Content" | "Other";
+  channel: "LinkedIn 5-3-1" | "LinkedIn" | "Email" | "Meeting" | "Call" | "Referral" | "Event" | "Content" | "Other";
   actionType?: SocialActionType;
-  metricType?: "Outreach sent" | "Follow-up sent" | "Reply received" | "Call attempted" | "Call connected" | "Incoming call connected" | "Meeting booked" | "Meeting held" | "Meeting cancelled" | "Meeting no-show" | "Comment made" | "Connection requested" | "Check-in completed" | "Other";
+  metricType?: "Outreach sent" | "Follow-up sent" | "Reply received" | "Call attempted" | "Call connected" | "Meeting booked" | "Meeting held" | "Meeting cancelled" | "Meeting no-show" | "Comment made" | "Connection requested" | "Check-in completed" | "Other";
   purpose?: "Unclassified" | "Business development" | "Client relationship" | "Partner relationship";
   owner?: string;
   ownerProfileId?: string;
@@ -801,7 +797,7 @@ export type AgentWorkspaceProposal = {
   needsClarification: boolean;
   actions: AgentWorkspaceAction[];
   nextWorkspace?: WorkspaceState;
-  provider?: AiExecutionProvider;
+  provider?: AiKeyProvider;
   model?: string;
 };
 

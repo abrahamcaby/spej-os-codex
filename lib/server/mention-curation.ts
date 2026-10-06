@@ -1,6 +1,6 @@
 import "server-only";
 
-import { isAiExecutionProvider, isLocalAiProvider } from "@/lib/ai-providers";
+import { isLocalAiProvider } from "@/lib/ai-providers";
 import { localMentionPriority, sortFeedStories } from "@/lib/feed-priority";
 import {
   boundedMentionEvidence,
@@ -12,7 +12,7 @@ import {
 } from "@/lib/mention-curation";
 import { parseAiJson, runConfiguredAi } from "@/lib/server/ai";
 import { configuredAiReady, type StoredSettings } from "@/lib/server/settings";
-import { customBackgroundAiCacheScope } from "@/lib/server/custom-background-ai";
+import type { AiKeyProvider } from "@/lib/types";
 
 declare global {
   var controlCenterMentionCurationCache: Map<string, MentionCurationCacheEntry> | undefined;
@@ -27,8 +27,7 @@ export async function curateMentionsWithAi(
   now = Date.now(),
 ) {
   const stories = sortFeedStories(verified.map(({ story }) => localMentionPriority(story)));
-  const provider = settings.ai.provider;
-  if (!isAiExecutionProvider(provider) || !configuredAiReady(settings) || !stories.length)
+  if (!configuredAiReady(settings) || !stories.length)
     return { items: stories, provider: "local" as const, curatedCount: 0, eligibleCount: 0 };
   const cache = globalThis.controlCenterMentionCurationCache ??= new Map();
   for (const [key, entry] of cache) if (entry.expiresAt <= now) cache.delete(key);
@@ -37,7 +36,6 @@ export async function curateMentionsWithAi(
     provider: settings.ai.provider,
     model: settings.ai.model,
     endpoint: isLocalAiProvider(settings.ai.provider) ? settings.ai.localBaseUrls[settings.ai.provider] : "",
-    customProviderScope: provider === "custom" ? customBackgroundAiCacheScope() : undefined,
     niche: settings.industry.description,
     keywords: settings.industry.keywords,
     exclusions: settings.mentions.negativeTerms,
@@ -82,6 +80,7 @@ export async function curateMentionsWithAi(
   })));
   while (cache.size > MAX_CACHE_ENTRIES) cache.delete(cache.keys().next().value!);
   const byId = new Map(available.map(({ id, curation }) => [id, curation]));
+  const provider = settings.ai.provider as AiKeyProvider;
   const items = stories.map((story) => {
     const curation = byId.get(story.id);
     // Only summary and priority fields may be copied from the model. Identity,

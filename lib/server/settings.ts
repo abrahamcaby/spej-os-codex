@@ -35,8 +35,7 @@ import {
   migrateMentionProfiles,
 } from "@/lib/mention-work";
 import { isValidPublicProfileUrl } from "@/lib/public-metrics";
-import { AI_KEY_PROVIDERS, DEFAULT_LOCAL_AI_URLS, aiEnvironmentKey, cleanAiModelOverride, isAiExecutionProvider, isAiKeyProvider, isLocalAiProvider, isValidAiModelId, localAiBaseUrl } from "@/lib/ai-providers";
-import { getCustomBackgroundAiStatus } from "@/lib/server/custom-background-ai";
+import { AI_KEY_PROVIDERS, DEFAULT_LOCAL_AI_URLS, aiEnvironmentKey, cleanAiModelOverride, isAiKeyProvider, isLocalAiProvider, isValidAiModelId, localAiBaseUrl } from "@/lib/ai-providers";
 import { defaultBriefSections, normalizeBriefSections } from "@/lib/daily-brief-snapshot";
 import { spejIndustryDescription, spejIndustryKeywords, spejIndustrySources } from "@/lib/spej-preset";
 
@@ -192,19 +191,14 @@ export async function readSettings(): Promise<StoredSettings> {
         })),
       },
       ai: {
-        provider: isAiExecutionProvider(parsed.ai?.provider) ? parsed.ai.provider : "none",
+        ...defaults.ai,
+        ...parsed.ai,
+        provider: isAiKeyProvider(parsed.ai?.provider) ? parsed.ai.provider : "none",
         // Older browser autofill could persist an email in the free-text model
         // field. Present Default without rewriting the user's file on read.
         model: isValidAiModelId(parsed.ai?.model) && parsed.ai.model !== "default" ? parsed.ai.model : "",
-        // Do not carry unknown/custom credentials or readiness flags from disk.
-        apiKeys: Object.fromEntries(AI_KEY_PROVIDERS.map((provider) => [
-          provider,
-          typeof parsed.ai?.apiKeys?.[provider] === "string" ? parsed.ai.apiKeys[provider] : "",
-        ])) as Record<AiKeyProvider, string>,
-        localBaseUrls: {
-          lmstudio: typeof parsed.ai?.localBaseUrls?.lmstudio === "string" ? parsed.ai.localBaseUrls.lmstudio : DEFAULT_LOCAL_AI_URLS.lmstudio,
-          ollama: typeof parsed.ai?.localBaseUrls?.ollama === "string" ? parsed.ai.localBaseUrls.ollama : DEFAULT_LOCAL_AI_URLS.ollama,
-        },
+        apiKeys: { ...defaults.ai.apiKeys, ...parsed.ai?.apiKeys },
+        localBaseUrls: { ...DEFAULT_LOCAL_AI_URLS, ...parsed.ai?.localBaseUrls },
       },
       dailyBrief: { ...defaults.dailyBrief, ...parsed.dailyBrief, sections: normalizeBriefSections(parsed.dailyBrief?.sections) },
     };
@@ -271,11 +265,7 @@ export function toPublicSettings(settings: StoredSettings): PublicSettings {
     ai: {
       provider: settings.ai.provider,
       model: settings.ai.model,
-      customProvider: getCustomBackgroundAiStatus(),
-      localBaseUrls: {
-        lmstudio: settings.ai.localBaseUrls.lmstudio ?? DEFAULT_LOCAL_AI_URLS.lmstudio,
-        ollama: settings.ai.localBaseUrls.ollama ?? DEFAULT_LOCAL_AI_URLS.ollama,
-      },
+      localBaseUrls: { ...DEFAULT_LOCAL_AI_URLS, ...settings.ai.localBaseUrls },
       keySet: {
         openai: Boolean(configuredAiApiKey(settings, "openai")),
         anthropic: Boolean(configuredAiApiKey(settings, "anthropic")),
@@ -306,7 +296,6 @@ export function configuredAiApiKey(
 
 export function configuredAiReady(settings: StoredSettings) {
   const provider = settings.ai.provider;
-  if (provider === "custom") return getCustomBackgroundAiStatus().available;
   return provider !== "none" && (isLocalAiProvider(provider) || Boolean(configuredAiApiKey(settings, provider)));
 }
 
@@ -528,7 +517,7 @@ export async function updateSettings(update: SettingsUpdate) {
       ai: {
         provider: update.ai === undefined
           ? current.ai.provider
-          : isAiExecutionProvider(update.ai.provider)
+          : isAiKeyProvider(update.ai.provider)
             ? update.ai.provider
             : "none",
         model: update.ai === undefined

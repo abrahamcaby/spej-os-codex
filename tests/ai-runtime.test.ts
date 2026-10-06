@@ -130,17 +130,6 @@ test("nonselected cloud keys never satisfy a missing provider key", async () => 
   });
 });
 
-test("an uninstalled custom provider never borrows a saved cloud key or calls another provider", async () => {
-  const { runConfiguredAi } = await import("../lib/server/ai");
-  const settings = settingsFor("openai");
-  settings.ai.provider = "custom";
-  let calls = 0;
-  await withFetch((async () => { calls++; throw new Error("Unexpected provider call"); }) as typeof fetch, async () => {
-    await assert.rejects(runConfiguredAi(settings, { prompt: "Synthetic curation" }), /Custom background AI is not configured/);
-  });
-  assert.equal(calls, 0);
-});
-
 test("local inference rejects insufficient or unknown loaded context before transmitting evidence", async () => {
   const { runConfiguredAi } = await import("../lib/server/ai");
   for (const contextLength of [undefined, 4_096]) {

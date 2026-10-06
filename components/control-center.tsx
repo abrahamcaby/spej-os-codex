@@ -17,7 +17,6 @@ import {
   Bookmark,
   BriefcaseBusiness,
   Cable,
-  CalendarDays,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -77,6 +76,7 @@ import type {
   ContentItem,
   ContentCategory,
   ContentStage,
+  ContentStream,
   AccountItem,
   ContactItem,
   ActivityItem,
@@ -100,18 +100,18 @@ import {
 } from "@/lib/audience-growth";
 import { SettingsInput } from "@/components/settings-input";
 import { AiProviderSettings } from "@/components/ai-provider-settings";
-import { ConnectionsSettings } from "@/components/connections-settings";
 import { DailySnapshot } from "@/components/daily-snapshot";
 import { AudienceInsights } from "@/components/audience-insights";
 import type { AudienceHistorySeries } from "@/lib/audience-charts";
 import { AI_PROVIDER_LABELS, DEFAULT_LOCAL_AI_URLS, isAiReady } from "@/lib/ai-providers";
 import { sortFeedStories, selectNewsletterTopics, newsletterSourceOptions } from "@/lib/feed-priority";
 import { sortIndustryItems, type IndustrySortOrder } from "@/lib/industry";
-import { TASK_PRIORITIES, TASK_VISIBILITIES, TASK_WORKSPACES, WORK_EFFORTS, WORK_STATUSES, completeTaskItems, inheritedTaskAccess, inheritedTaskRelationship, normalizeTaskHierarchy, removeTaskAndDetachChildren, sortTaskItems, taskBelongsToWorkspace, taskCategoryForDisplay, taskDueValue, taskPriorityRank, taskVisibility, taskVisibilityLabel, taskWorkspaceId, taskWorkspaceLabel, type TaskSortMode } from "@/lib/tasks";
+import { TASK_PRIORITIES, TASK_VISIBILITIES, TASK_WORKSPACES, WORK_EFFORTS, WORK_STATUSES, completeTaskItems, inheritedTaskAccess, inheritedTaskRelationship, normalizeTaskHierarchy, removeTaskAndDetachChildren, sortTaskItems, taskBelongsToWorkspace, taskDueValue, taskPriorityRank, taskVisibility, taskVisibilityLabel, taskWorkspaceId, taskWorkspaceLabel, type TaskSortMode } from "@/lib/tasks";
 import { PREVIEW_OPERATOR_PROFILE_ID, TEAM_VIEW_PROFILES, TEAM_HOME_MODULES, getRoleHomeModules, getTeamViewProfile, type TeamProfileId, type TeamViewProfile } from "@/lib/team-views";
 import type { HomeModuleId } from "@/lib/home-layout";
 import { PREVIEW_ACCESS_NOTICE, getPreviewAccessPolicy, previewCanEditTask, previewCanViewTask, previewOwnsTask, previewWorkspaceLabels } from "@/lib/task-access-preview";
-import { COMPANY_CONTENT_STREAM, COMPANY_CONTENT_CATEGORIES, contentCategoryLabel, normalizeContentCategory } from "@/lib/content-taxonomy";
+import { socialSellingProgress } from "@/lib/social-selling";
+import { contentCategoriesForStream, normalizeContentCategory } from "@/lib/content-taxonomy";
 import { IntelligenceHub, PartnershipsView, PipelineView, ProjectsView } from "@/components/director-operations";
 import { RelationshipsView } from "@/components/relationships-view";
 import { SpejAgent } from "@/components/spej-agent";
@@ -120,10 +120,6 @@ import { CampaignsView } from "@/components/campaigns-view";
 import { TodayActionCenter } from "@/components/today-action-center";
 import { HomeSosaBar } from "@/components/personal-home";
 import { ConfigurableHome } from "@/components/configurable-home";
-import { WorkPlanning } from "@/components/work-planning";
-import { WorkTaskRow } from "@/components/task-work-row";
-import { buildPersonalCalendarDeadlines } from "@/lib/calendar-deadlines";
-import { getOpenParentTaskIds } from "@/lib/planning-candidates";
 import { DeliveryWorkspaceHome, GtmWorkspaceHome } from "@/components/workspace-overviews";
 import { AccessManagementPanel, type AccessAuditEvent, type AccessFeatureOption, type AccessPrincipalOption, type AccessRecordGrantInput } from "@/components/access-management-panel";
 import { evaluatePortalAccess, isStableAccessId, type AccessCapability, type AccessDataScope, type AccessRole, type AccessRule, type AccessSubject, type AccessTenantPolicy } from "@/lib/access-control";
@@ -136,7 +132,6 @@ import {
 
 type Tab =
   | "today"
-  | "calendar"
   | "agent"
   | "gtm"
   | "gtm-linkedin"
@@ -225,7 +220,6 @@ const recordFocusTabs: Tab[] = ["pipeline", "partnerships", "projects", "gtm-ini
 
 const nav: { id: Tab; label: string; icon: typeof Activity; activeTabs?: Tab[] }[] = [
   { id: "today", label: "My Work", icon: LayoutDashboard },
-  { id: "calendar", label: "Calendar", icon: CalendarDays },
   { id: "agent", label: "SOSA", icon: Sparkles },
   { id: "relationships", label: "CRM", icon: Network },
   { id: "gtm", label: "GTM", icon: BriefcaseBusiness, activeTabs: gtmWorkspaceTabs },
@@ -233,7 +227,7 @@ const nav: { id: Tab; label: string; icon: typeof Activity; activeTabs?: Tab[] }
 ];
 
 const hiddenTabs: { id: Tab; label: string }[] = [
-  { id: "gtm-linkedin", label: "Outbound" },
+  { id: "gtm-linkedin", label: "LinkedIn Focus" },
   { id: "pipeline", label: "Sales pipeline" }, { id: "partnerships", label: "Partners & affiliates" },
   { id: "gtm-initiatives", label: "Plans & initiatives" },
   { id: "projects", label: "All projects" },
@@ -358,7 +352,7 @@ function initialPreviewAccessProfiles(): PreviewAccessProfile[] {
 }
 
 function tabPortal(tab: Tab): string {
-  if (tab === "today" || tab === "calendar") return "my-work";
+  if (tab === "today") return "my-work";
   if (tab === "agent") return "sosa";
   if (tab === "relationships") return "crm";
   if (deliveryWorkspaceTabs.includes(tab)) return "projects";
@@ -994,7 +988,7 @@ function TodayView({
   addBriefTask: (item: DailyBriefItem) => void;
   completeTask: (task: Task) => void;
 }) {
-  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const socialProgress = socialSellingProgress(accounts, contacts, activities);
   const industryConfigured =
     settings.industry.sources.length + settings.industry.keywords.length > 0;
   const configured = [
@@ -1045,21 +1039,6 @@ function TodayView({
         goTo={goTo}
         completeTask={completeTask}
       />
-      <details className="work-schedule-disclosure" onToggle={(event) => setScheduleOpen(event.currentTarget.open)}>
-        <summary><CalendarDays size={20}/><span><strong>Work schedule</strong><small>Optional · suggest time blocks for your work, around your commitments</small></span><ChevronDown size={18}/></summary>
-        {scheduleOpen && <WorkPlanning
-          compact
-          parentIdsWithOpenWork={getOpenParentTaskIds(tasks)}
-          key={`planning:${viewer.id}`}
-          ownerId={viewer.id}
-          displayName={viewer.displayName}
-          tasks={tasks.filter((task) => previewCanViewTask(task, viewer, projects) && previewOwnsTask(task, viewer))}
-          openTask={(task) => goTo(taskWorkspaceId(task, projects) === "project-management" ? "delivery-work" : "tasks", task.id)}
-          completeTask={(task) => { if (previewCanEditTask(task, viewer, projects)) completeTask(task); }}
-          askSosa={(context) => { setAgentCommand(context); goTo("agent"); }}
-          openCalendar={() => goTo("calendar")}
-        />}
-      </details>
       <ConfigurableHome
         key={viewer.id}
         canViewTab={canViewTab}
@@ -1112,7 +1091,7 @@ function TodayView({
           <div><span className="gtm-boundary-badge shared">CRM</span><b>Company records</b><p>Accounts, people, relationships, opportunities, activity, and client history are maintained once.</p></div>
           <div><span className="gtm-boundary-badge system">Projects</span><b>Plan and deliver</b><p>Client, AI Office, Plooms, event, marketing, partner, product, and internal work.</p></div>
         </div>
-        <div className="gtm-sync-note"><span><i/>Standalone preview · company identity, shared storage, Microsoft 365, and Plooms still require engineering setup</span><button onClick={() => openSettings("integrations")}>See connection plan <ArrowRight size={13}/></button></div>
+        <div className="gtm-sync-note"><span><i/>Demo mode · company identity, Microsoft 365, and existing Spej OS services still require IT connection</span><button onClick={() => openSettings("integrations")}>See connection plan <ArrowRight size={13}/></button></div>
       </section>
       <section className="operating-map reveal delay-1" aria-label="Spej OS workspaces">
         <div className="operating-map-head"><div><p className="eyebrow">Where to go</p><h2>Open the record you need or ask SOSA.</h2></div><button className="button button-primary" onClick={() => goTo("agent")}><Sparkles size={15}/> Open SOSA</button></div>
@@ -1120,7 +1099,7 @@ function TodayView({
           <button onClick={() => goTo("relationships")}><Network/><span><b>CRM</b><small>Accounts, people, opportunities, clients, partners, and activity</small></span><ArrowRight/></button>
           <button onClick={() => goTo("gtm")}><BriefcaseBusiness/><span><b>GTM</b><small>Sales, marketing, content, performance, intelligence, and related work</small></span><ArrowRight/></button>
           <button onClick={() => goTo("delivery")}><FolderKanban/><span><b>Projects</b><small>Company delivery, milestones, risks, decisions, quality, and work</small></span><ArrowRight/></button>
-          <button onClick={() => goTo("content")}><Clapperboard/><span><b>Content</b><small>Company content, production, review, and campaigns</small></span><ArrowRight/></button>
+          <button onClick={() => goTo("content")}><Clapperboard/><span><b>Content</b><small>Personal LinkedIns, Spej authority content, production, and campaigns</small></span><ArrowRight/></button>
           <button onClick={() => goTo("metrics")}><BarChart3/><span><b>GTM performance</b><small>Prospecting and publishing inputs, meetings, pipeline, and outcomes</small></span><ArrowRight/></button>
           <button onClick={() => goTo("intelligence")}><Radio/><span><b>Intelligence</b><small>Industry news, Spej mentions, newsletters, and saved research</small></span><ArrowRight/></button>
         </div>
@@ -1128,10 +1107,14 @@ function TodayView({
         </div>
       </details>
       {showGtmDailyTools ? (
-        <DailyBriefPanel settings={settings} openSettings={openSettings} addTask={addBriefTask} goTo={goTo} />
+        <>
+          <button className="today-social-strip reveal delay-1" onClick={() => goTo("gtm-linkedin")}><span className="ops-icon"><Linkedin size={17}/></span><span><b>Today’s LinkedIn 5-3-1 tasks</b><small>{socialProgress.focusedAccounts.length}/5 focus accounts · {socialProgress.focusedContacts.length} focus people · {socialProgress.completedContactIdsToday.size} engaged today</small></span><span>{socialProgress.activeDaysThisWeek}/7 active days</span><ArrowRight size={16}/></button>
+          <DailyBriefPanel settings={settings} openSettings={openSettings} addTask={addBriefTask} goTo={goTo} />
+        </>
       ) : (
         <details className="today-secondary-section reveal delay-1">
-          <summary><span>GTM intelligence</span><small>Available to every team member when needed</small></summary>
+          <summary><span>GTM intelligence and 5-3-1</span><small>Available to every team member when needed</small></summary>
+          <button className="today-social-strip" onClick={() => goTo("gtm-linkedin")}><span className="ops-icon"><Linkedin size={17}/></span><span><b>LinkedIn 5-3-1</b><small>{socialProgress.focusedAccounts.length}/5 focus accounts · {socialProgress.focusedContacts.length} focus people · {socialProgress.completedContactIdsToday.size} engaged today</small></span><span>{socialProgress.activeDaysThisWeek}/7 active days</span><ArrowRight size={16}/></button>
           <DailyBriefPanel settings={settings} openSettings={openSettings} addTask={addBriefTask} goTo={goTo} />
         </details>
       )}
@@ -2222,8 +2205,9 @@ function NewslettersView({
 }
 
 const contentStages: ContentStage[] = ["Idea", "Research", "Drafting", "Production", "Scheduled", "Published"];
+const contentStreams: ContentStream[] = ["Personal LinkedIns", "Spej Authority-building content"];
 
-export function ContentView({
+function ContentView({
   items,
   setItems,
   campaigns,
@@ -2243,6 +2227,8 @@ export function ContentView({
   const [contentError, setContentError] = useState("");
   const [title, setTitle] = useState("");
   const [format, setFormat] = useState<ContentItem["format"]>("YouTube");
+  const [activeStream, setActiveStream] = useState<ContentStream>(items.find((item) => item.id === initialFocus)?.stream || "Spej Authority-building content");
+  const [draftStream, setDraftStream] = useState<ContentStream>("Spej Authority-building content");
   const [category, setCategory] = useState<ContentCategory>("Unassigned");
   const [categoryFilter, setCategoryFilter] = useState<ContentCategory | "All">("All");
   const [contentQuery, setContentQuery] = useState("");
@@ -2265,8 +2251,8 @@ export function ContentView({
   });
   const openContent = (item?: ContentItem, nextStage?: ContentStage) => {
     setEditingContentId(item?.id || null); setContentError("");
-    setTitle(item?.title || ""); setFormat(item?.format || "YouTube");
-    setCategory(item?.pillar || "Unassigned");
+    setTitle(item?.title || ""); setFormat(item?.format || (activeStream === "Personal LinkedIns" ? "LinkedIn" : "YouTube"));
+    setDraftStream(item?.stream || activeStream); setCategory(item?.pillar || "Unassigned");
     setStage(nextStage || item?.stage || "Idea"); setPublishDate(item?.publishDate || "");
     setAngle(item?.angle || ""); setSourceUrl(item?.sourceUrl || ""); setOwner(item?.owner || defaultOwner);
     setApprover(item?.approver === "Unassigned" ? "" : item?.approver || ""); setReviewStatus(item?.reviewStatus || "Not Requested");
@@ -2281,25 +2267,22 @@ export function ContentView({
     if (issue) return setContentError(issue);
     setItems((values) => {
       const existing = values.find((item) => item.id === editingContentId);
-      // Keep historical categories until the editor deliberately chooses a new
-      // company category. Consolidating the view must not rewrite saved work.
-      const keepSavedCategory = existing?.pillar === category;
       const saved: ContentItem = {
         ...existing, id: existing?.id || crypto.randomUUID(), title: title.trim(), format, stage, publishDate,
-        angle: angle.trim(),
-        pillar: keepSavedCategory ? category : normalizeContentCategory(COMPANY_CONTENT_STREAM, category, angle),
-        stream: keepSavedCategory && existing ? existing.stream : COMPANY_CONTENT_STREAM,
+        angle: angle.trim(), pillar: normalizeContentCategory(draftStream, category, angle), stream: draftStream,
         owner: owner.trim(), ownerProfileId: getTeamViewProfile(owner.trim())?.id ?? (existing?.owner === owner.trim() ? existing.ownerProfileId : undefined),
         approver: approver.trim(), approverProfileId: getTeamViewProfile(approver.trim())?.id ?? (existing?.approver === approver.trim() ? existing.approverProfileId : undefined), reviewStatus, reviewDue, campaignId: campaignId || undefined,
         sourceUrl: sourceUrl.trim() || undefined, createdAt: existing?.createdAt || new Date().toISOString(),
       };
       return existing ? values.map((item) => item.id === existing.id ? saved : item) : [saved, ...values];
     });
-    setCategoryFilter("All"); setShowForm(false); setEditingContentId(null); setContentError("");
+    setActiveStream(draftStream); setCategoryFilter("All"); setShowForm(false); setEditingContentId(null); setContentError("");
   };
-  const streamItems = items;
-  const activeCategories = COMPANY_CONTENT_CATEGORIES;
-  const draftCategories = COMPANY_CONTENT_CATEGORIES;
+  const streamItems = items
+    .filter((item) => item.stream === activeStream)
+    .map((item) => ({ ...item, pillar: normalizeContentCategory(item.stream, item.pillar, item.angle) }));
+  const activeCategories = contentCategoriesForStream(activeStream);
+  const draftCategories = contentCategoriesForStream(draftStream);
   const active = streamItems.filter((item) => !["Idea", "Published"].includes(item.stage)).length;
   const scheduled = streamItems.filter((item) => item.stage === "Scheduled").length;
   const pendingReview = streamItems.filter((item) => item.reviewStatus === "Pending Review" || item.reviewStatus === "Changes Requested").length;
@@ -2311,6 +2294,7 @@ export function ContentView({
         description="Create and produce individual media pieces here. Use campaigns to coordinate a launch or series, and linked tasks for scripting, recording, editing, and review deadlines."
         action={<button className="button button-primary" onClick={() => openContent()}><Plus size={16} /> Add content</button>}
       />
+      <div className="content-stream-tabs reveal delay-1" role="tablist" aria-label="Content workspaces">{contentStreams.map((value) => <button role="tab" aria-selected={activeStream === value} className={activeStream === value ? "active" : ""} key={value} onClick={() => { setActiveStream(value); setCategoryFilter("All"); }}><span>{value}</span><b>{items.filter((item) => item.stream === value).length}</b><small>{value === "Personal LinkedIns" ? "Your voice, relationships, and whole-person stories" : "Spej’s editorial franchises, research, and enterprise authority"}</small></button>)}</div>
       {showForm && (
         <form className="content-form reveal" onSubmit={submit}>
           <div className="content-form-copy">
@@ -2321,7 +2305,8 @@ export function ContentView({
           </div>
           <div className="content-form-fields">
             <label>Format<select value={format} onChange={(event) => setFormat(event.target.value as ContentItem["format"])}><option>YouTube</option><option>Newsletter</option><option>LinkedIn</option><option>Short-form</option><option>Article</option><option>Other</option></select></label>
-            <label>Content category<select value={category} onChange={(event) => setCategory(event.target.value as ContentCategory)}>{!draftCategories.includes(category) && <option value={category}>Keep saved category</option>}{draftCategories.map((value) => <option key={value}>{value}</option>)}</select></label>
+            <label>Content workspace<select value={draftStream} onChange={(event) => { setDraftStream(event.target.value as ContentStream); setCategory("Unassigned"); }}>{contentStreams.map((value) => <option key={value}>{value}</option>)}</select></label>
+            <label>{draftStream === "Personal LinkedIns" ? "Whole-person theme" : "Authority content category"}<select value={category} onChange={(event) => setCategory(event.target.value as ContentCategory)}>{draftCategories.map((value) => <option key={value}>{value}</option>)}</select></label>
             <label>Stage<select value={stage} onChange={(event) => setStage(event.target.value as ContentStage)}>{contentStages.map((value) => <option key={value}>{value}</option>)}</select></label>
             <label>{stage === "Published" ? "Actual publish date" : "Planned publish date"}<input type="date" required={stage === "Published" || stage === "Scheduled"} max={stage === "Published" ? localDateValue() : undefined} value={publishDate} onInput={(event) => setPublishDate(event.currentTarget.value)} onChange={(event) => setPublishDate(event.target.value)} /></label>
             <label>Owner<input required value={owner} onChange={(event) => setOwner(event.target.value)} /></label>
@@ -2340,7 +2325,7 @@ export function ContentView({
         <div><b>{scheduled}</b><span>scheduled</span></div>
         <div><b>{pendingReview}</b><span>needs review</span></div>
       </div>
-      <div className="content-pillar-bar reveal delay-1"><div><p className="eyebrow">Company content</p><span>One production workflow for posts, articles, videos, and newsletters.</span></div><label className="content-category-filter">Filter by category<select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value as ContentCategory | "All")}><option value="All">All categories · {streamItems.length}</option>{activeCategories.map((value) => <option key={value} value={value}>{value} · {streamItems.filter((item) => item.pillar === value).length}</option>)}</select></label></div>
+      <div className="content-pillar-bar reveal delay-1"><div><p className="eyebrow">{activeStream === "Personal LinkedIns" ? "Whole-person content" : "Spej authority categories"}</p><span>{activeStream === "Personal LinkedIns" ? "Balance expertise with origin stories, human interests, and visible collaboration." : "Use the topic categories from the Spej Enterprise AI content calendar and idea library."}</span></div>{activeStream === "Personal LinkedIns" ? <div className="filter-row"><button className={categoryFilter === "All" ? "active" : ""} onClick={() => setCategoryFilter("All")}>All</button>{activeCategories.map((value) => <button key={value} className={categoryFilter === value ? "active" : ""} onClick={() => setCategoryFilter(value)}>{value} · {streamItems.filter((item) => item.pillar === value).length}</button>)}</div> : <label className="content-category-filter">Filter by category<select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value as ContentCategory | "All")}><option value="All">All categories · {streamItems.length}</option>{activeCategories.map((value) => <option key={value} value={value}>{value} · {streamItems.filter((item) => item.pillar === value).length}</option>)}</select></label>}</div>
       <div className="content-search-toolbar"><label className="search-box"><Search size={16} aria-hidden="true"/><input aria-label="Search content library" placeholder="Search titles, topics or owners" value={contentQuery} onChange={(event) => setContentQuery(event.target.value)}/></label><span className="view-guidance">Scroll across stages; scroll within a stage to browse its pieces.</span></div>
       <div className="content-board reveal delay-2" tabIndex={0} aria-label="Content production stages">
         {contentStages.filter((column) => initialFocus === undefined || streamItems.some((item) => String(item.id) === String(initialFocus) && item.stage === column)).map((column) => {
@@ -2353,7 +2338,7 @@ export function ContentView({
                 <div><Label tone={column === "Published" ? "positive" : column === "Scheduled" ? "brief" : undefined}>{item.format}</Label><button aria-label={`Delete ${item.title}`} title="Delete content item" onClick={() => { if (window.confirm(`Delete “${item.title}”? This permanently removes the content record. Linked tasks are kept.`)) setItems((values) => values.filter((value) => value.id !== item.id)); }}><Trash2 size={13} /></button></div>
                 <h3>{item.title}</h3>
                 <div className="record-card-tools"><button onClick={() => openContent(item)} aria-label={`Edit content: ${item.title}`}>Edit details</button><button onClick={() => addTask({ title: `Produce: ${item.title}`, description: item.angle || "Define the next production step.", due: item.reviewDue || item.publishDate, category: "Content", relatedType: "content", relatedId: item.id, owner: item.owner })}>Production task</button></div>
-                <span className="content-pillar">{contentCategoryLabel(item.pillar)}</span>
+                <span className="content-pillar">{item.pillar}</span>
                 {item.angle && <p>{item.angle}</p>}
                 {item.sourceUrl && <a href={item.sourceUrl} target="_blank" rel="noreferrer"><ExternalLink size={11} /> Research source</a>}
                 <div className="content-ownership"><span>{item.owner || "Unassigned"}</span>{item.campaignId && <span>{campaigns.find((campaign) => campaign.id === item.campaignId)?.name || "Campaign"}</span>}</div>
@@ -2371,7 +2356,7 @@ export function ContentView({
   );
 }
 
-const taskCategories: TaskCategory[] = ["Sales", "Partnerships", "Marketing", "Content", "Project Work", "Client Delivery", "Operations", "General"];
+const taskCategories: TaskCategory[] = ["Sales", "Partnerships", "Marketing", "5-3-1", "Content", "Project Work", "Client Delivery", "Operations", "General"];
 
 function TasksView({
   tasks,
@@ -2397,8 +2382,6 @@ function TasksView({
   workspace?: "gtm" | "delivery";
 }) {
   const isDelivery = workspace === "delivery";
-  const isFocusedView = initialFocus !== undefined;
-  const formRef = useRef<HTMLFormElement>(null);
   const viewerAccess = getPreviewAccessPolicy(viewer);
   const scopedCategories: TaskCategory[] = isDelivery ? ["Project Work", "Client Delivery"] : taskCategories.filter((value) => value !== "Project Work" && value !== "Client Delivery");
   const defaultCategory: TaskCategory = isDelivery ? "Project Work" : "General";
@@ -2408,7 +2391,6 @@ function TasksView({
     : viewerAccess?.workspaceIds[0] || preferredWorkspaceId;
   const [showForm, setShowForm] = useState(false);
   const [showAllShared, setShowAllShared] = useState(false);
-  const [taskEditError, setTaskEditError] = useState("");
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -2429,11 +2411,6 @@ function TasksView({
   const [sortMode, setSortMode] = useState<TaskSortMode>("due-asc");
   const [groupMode, setGroupMode] = useState<"category" | "owner" | "none">("category");
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  useEffect(() => {
-    if (!showForm) return;
-    const frame = window.requestAnimationFrame(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
-    return () => window.cancelAnimationFrame(frame);
-  }, [showForm, editingTaskId, parentId]);
   const editingTask = editingTaskId ? tasks.find((task) => String(task.id) === editingTaskId) : undefined;
   const canChangeEditingTaskAccess = !editingTask || previewOwnsTask(editingTask, viewer);
   const workspaceOptions = TASK_WORKSPACES.filter((workspaceId) =>
@@ -2444,7 +2421,6 @@ function TasksView({
   const projectLinkIssue = projectTaskLinkIssue({ projectWorkspace: isDelivery, parentId, projectId: relatedProjectId, projects });
   const taskFormBlocked = privateTaskNeedsOwner || Boolean(projectLinkIssue);
   const resetForm = () => {
-    setTaskEditError("");
     setEditingTaskId(null);
     setTitle("");
     setDescription("");
@@ -2462,11 +2438,10 @@ function TasksView({
     setShowForm(false);
   };
   const openCreate = (parent?: Task) => {
-    setTaskEditError("");
     setEditingTaskId(null);
     setTitle("");
     setDescription("");
-    setDue(parent?.due === "Today" ? localDateValue() : parent?.due || localDateValue());
+    setDue(parent?.due || localDateValue());
     setRecurrence("One-time");
     setPriority(parent?.priority || "Normal");
     setOwner(parent?.owner || defaultOwner);
@@ -2476,27 +2451,23 @@ function TasksView({
     setSelectedWorkspaceId(parent ? taskWorkspaceId(parent, projects) : defaultWorkspaceId);
     setRelatedProjectId(parent?.relatedType === "project" ? parent.relatedId || "" : "");
     setParentId(parent ? String(parent.id) : "");
-    setCategory(parent ? taskCategoryForDisplay(parent) : defaultCategory);
+    setCategory(parent?.category || defaultCategory);
     setShowForm(true);
   };
   const openEdit = (task: Task) => {
-    setTaskEditError("");
-    setEditingTaskId(String(task.id)); setTitle(task.title); setDescription(task.description); setDue(task.due === "Today" ? localDateValue() : task.due);
+    setEditingTaskId(String(task.id)); setTitle(task.title); setDescription(task.description); setDue(task.due);
     setRecurrence(task.recurrence); setPriority(task.priority); setOwner(task.owner || defaultOwner); setStatus(task.status || "Not Started");
-    setEffort(task.effort || "Small"); setVisibility(taskVisibility(task)); setSelectedWorkspaceId(taskWorkspaceId(task, projects)); setRelatedProjectId(task.relatedType === "project" ? task.relatedId || "" : ""); setParentId(task.parentId === undefined ? "" : String(task.parentId)); setCategory(taskCategoryForDisplay(task)); setShowForm(true);
+    setEffort(task.effort || "Small"); setVisibility(taskVisibility(task)); setSelectedWorkspaceId(taskWorkspaceId(task, projects)); setRelatedProjectId(task.relatedType === "project" ? task.relatedId || "" : ""); setParentId(task.parentId === undefined ? "" : String(task.parentId)); setCategory(task.category || "General"); setShowForm(true);
+    window.scrollTo({top:0, behavior:"smooth"});
   };
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (!title.trim() || !due || privateTaskNeedsOwner || projectLinkIssue) return;
-    if (editingTaskId && (!editingTask || editingTask.done || !previewCanEditTask(editingTask, viewer, projects))) {
-      setTaskEditError("This task changed or you no longer have edit access. Your draft is still here; cancel and reopen the current task before making changes.");
-      return;
-    }
     const parent = tasks.find((task) => !task.done && String(task.id) === parentId && task.parentId === undefined && previewCanViewTask(task, viewer, projects));
     if (!parent && !viewerAccess?.workspaceIds.includes(selectedWorkspaceId)) return;
     setTasks((values) => {
       const existing = editingTaskId ? values.find((item) => String(item.id) === editingTaskId) : undefined;
-      if (editingTaskId && (!existing || existing.done || !previewCanEditTask(existing, viewer, projects))) return values;
+      if (editingTaskId && (!existing || existing.done)) return values;
       const canChangeAccess = !existing || previewOwnsTask(existing, viewer);
       const accessInput = canChangeAccess ? {
         ...existing,
@@ -2521,7 +2492,7 @@ function TasksView({
         status,
         effort,
         parentId: parent?.id,
-        category: existing?.category === "5-3-1" && category === "Sales" ? existing.category : category,
+        category,
         ...relationship,
         ...inheritedTaskAccess(parent, accessInput),
         done: false,
@@ -2549,7 +2520,7 @@ function TasksView({
   const allOpen = workspaceTasks.filter((task) => !task.done);
   const openIds = new Set(allOpen.map((task) => String(task.id)));
   const isTopLevel = (task: Task) => task.parentId === undefined || !openIds.has(String(task.parentId));
-  const categoryMatches = (task: Task) => categoryFilter === "All" || taskCategoryForDisplay(task) === categoryFilter;
+  const categoryMatches = (task: Task) => categoryFilter === "All" || (task.category || "General") === categoryFilter;
   const ownerMatches = (task: Task) => ownerFilter === "All" || (task.owner || "Unassigned") === ownerFilter;
   const statusMatches = (task: Task) => statusFilter === "All" || (task.status || "Not Started") === statusFilter;
   const taskMatches = (task: Task) => focusedFamily ? focusedFamily.has(String(task.id)) : categoryMatches(task) && ownerMatches(task) && statusMatches(task);
@@ -2575,7 +2546,7 @@ function TasksView({
   });
   const openTaskGroups = open.reduce<Array<{ key: string; label: string; tasks: Task[] }>>((groups, task) => {
     const label = groupMode === "category"
-      ? taskCategoryForDisplay(task)
+      ? task.category || "General"
       : groupMode === "owner"
         ? task.owner || "Unassigned"
         : "All work";
@@ -2600,6 +2571,7 @@ function TasksView({
   );
   const dueToday = allOpen.filter((task) => isTaskDueToday(task.due));
   const openSubtaskCount = allOpen.filter((task) => task.parentId !== undefined && openIds.has(String(task.parentId))).length;
+  const todayTotal = dueToday.length + completedToday.length;
   const parentOptions = allOpen.filter((task) => isTopLevel(task) && String(task.id) !== editingTaskId);
   const owners = Array.from(new Set([...TEAM_VIEW_PROFILES.map((profile) => profile.displayName), "Unassigned", ...allOpen.map((task) => task.owner || "Unassigned")])).sort();
   const toggleCollapsed = (task: Task) => setCollapsed((values) => {
@@ -2607,38 +2579,54 @@ function TasksView({
     if (next.has(key)) next.delete(key); else next.add(key);
     return next;
   });
+  const priorityClass = (value: Task["priority"]) => `task-priority priority-${value.toLowerCase()}`;
   const renderTaskRow = (task: Task, isSubtask = false) => {
     const allChildren = childrenFor(task);
     const visibleChildren = taskMatches(task) ? allChildren : allChildren.filter(taskMatches);
     const remaining = allChildren.length;
     const totalChildren = workspaceTasks.filter((item) => String(item.parentId) === String(task.id) && item.seriesId === undefined).length;
+    const completedChildren = totalChildren - remaining;
     const isCollapsed = collapsed.has(String(task.id));
     const canEdit = previewCanEditTask(task, viewer, projects);
     const canChangeAccess = previewOwnsTask(task, viewer);
-    return <div className="work-task-group" key={task.id}>
-      <WorkTaskRow task={task} workspaceLabel={taskWorkspaceLabel(task, projects)} visibilityLabel={taskVisibilityLabel(task)} dueLabel={formatTaskDue(task.due)} dueToday={isTaskDueToday(task.due)}
-        focused={isFocusedView && String(initialFocus) === String(task.id)} isSubtask={isSubtask}
-        canEdit={canEdit} canChangeOwner={canChangeAccess && !(isSubtask && taskVisibility(task) === "Private")} owners={owners}
-        remainingChildren={remaining} hasOpenChildren={openSubtasksFor(task).length > 0} totalChildren={totalChildren} expanded={!isCollapsed}
-        onComplete={() => { if (canEdit) complete(task); }} onToggleChildren={!isSubtask && totalChildren > 0 ? () => toggleCollapsed(task) : undefined}
-        onEdit={() => { if (canEdit) openEdit(task); }} onAddSubtask={!isSubtask && canEdit ? () => openCreate(task) : undefined} onDelete={() => { if (canEdit) remove(task); }}
-        relatedLabel={task.relatedType && task.relatedId ? relatedNames[`${task.relatedType}:${task.relatedId}`] || task.relatedType : undefined}
-        onOpenRelated={task.relatedType && task.relatedId ? () => goTo(task.relatedType === "account" || task.relatedType === "contact" ? "relationships" : task.relatedType === "opportunity" ? "pipeline" : task.relatedType === "partnership" ? "partnerships" : task.relatedType === "project" ? (projects.find((project) => project.id === task.relatedId)?.workArea === "GTM" ? "gtm-initiatives" : "projects") : task.relatedType === "campaign" ? "campaigns" : "content", task.relatedId) : undefined}
-        onOwnerChange={(value) => { if (canChangeAccess && !(isSubtask && taskVisibility(task) === "Private") && !(taskVisibility(task) === "Private" && value === "Unassigned")) setTasks((values) => normalizeTaskHierarchy(values.map((item) => item.id === task.id && previewOwnsTask(item, viewer) && !(taskVisibility(item) === "Private" && value === "Unassigned") ? { ...item, owner: value, ownerProfileId: getTeamViewProfile(value)?.id } : item))); }}
-        onStatusChange={(value) => { if (canEdit) setTasks((values) => values.map((item) => item.id === task.id ? { ...item, status: value } : item)); }}
-        onPriorityChange={(value) => { if (canEdit) setTasks((values) => values.map((item) => item.id === task.id ? { ...item, priority: value } : item)); }}
-      />
-      {!isSubtask && !isCollapsed && visibleChildren.length > 0 && <div className="work-task-children">{sortTaskItems(visibleChildren, sortMode).map((child) => renderTaskRow(child, true))}</div>}
+    return <div className={classNames("task-group", isSubtask && "task-subtask-group")} key={task.id}>
+      <div className={classNames("task-row", isSubtask && "task-subtask-row", initialFocus !== undefined && String(initialFocus) === String(task.id) && "task-focused")}>
+        <div className="task-leading">
+          <button className="round-check" disabled={!canEdit || remaining > 0} title={!canEdit ? "Read-only in this access preview" : remaining ? "Complete the open subtasks first" : undefined} aria-label={!canEdit ? `${task.title} is read-only` : remaining ? `${task.title} has ${remaining} open subtasks` : task.recurrence === "One-time" ? `Complete ${task.title}` : `Complete and reschedule ${task.title}`} onClick={() => complete(task)}><Check size={14}/></button>
+          {!isSubtask && totalChildren > 0 && <button className={classNames("task-expand", !isCollapsed && "expanded")} aria-label={`${isCollapsed ? "Show" : "Hide"} subtasks for ${task.title}`} onClick={() => toggleCollapsed(task)}><ChevronDown size={15}/></button>}
+        </div>
+        <div className="task-copy">
+          <span><Label tone="brief">{taskWorkspaceLabel(task, projects)}</Label><Label tone={task.category === "5-3-1" ? "brief" : undefined}>{task.category || "General"}</Label><Label tone={taskVisibility(task) === "Company" ? "positive" : taskVisibility(task) === "Workspace" ? "watch" : undefined}>{taskVisibilityLabel(task)}</Label>{!isSubtask && totalChildren > 0 && <Label tone="brief">Task group</Label>}{!isSubtask && totalChildren > 0 && <Label tone={remaining ? "watch" : "positive"}>{completedChildren}/{totalChildren} subtasks</Label>}{isSubtask && <small className="subtask-kicker">Subtask</small>}</span>
+          <b>{task.title}</b>
+          <p>{task.description}</p>
+          <div className="task-meta"><span>Owner · {task.owner || "Unassigned"}</span><span>{task.status || "Not Started"}</span><span>{task.effort || "Small"}</span>{task.recurrence !== "One-time" && <span>{task.recurrence}</span>}{!canEdit && <span>Read-only preview</span>}{task.relatedType && task.relatedId && <button onClick={() => goTo(task.relatedType === "account" || task.relatedType === "contact" ? "relationships" : task.relatedType === "opportunity" ? "pipeline" : task.relatedType === "partnership" ? "partnerships" : task.relatedType === "project" ? (projects.find((project) => project.id === task.relatedId)?.workArea === "GTM" ? "gtm-initiatives" : "projects") : task.relatedType === "campaign" ? "campaigns" : "content", task.relatedId)}>Linked: {relatedNames[`${task.relatedType}:${task.relatedId}`] || task.relatedType}</button>}</div>
+          {canEdit && <button className="add-subtask" aria-label={`Edit task: ${task.title}`} onClick={() => openEdit(task)}>Edit details / deadline</button>}
+          {!isSubtask && canEdit && <button className="add-subtask" onClick={() => openCreate(task)}><Plus size={12}/> Add subtask</button>}
+        </div>
+        <select disabled={!canChangeAccess || (isSubtask && taskVisibility(task) === "Private")} aria-label={`Owner for ${task.title}`} className="task-owner" value={task.owner || "Unassigned"} onChange={(event) => setTasks((values) => normalizeTaskHierarchy(values.map((value) => value.id === task.id ? { ...value, owner: event.target.value, ownerProfileId: getTeamViewProfile(event.target.value)?.id } : value)))}>{owners.map((value) => <option key={value}>{value}</option>)}</select>
+        <select disabled={!canEdit} aria-label={`Status for ${task.title}`} className={`task-status status-${(task.status || "Not Started").toLowerCase().replaceAll(" ", "-")}`} value={task.status || "Not Started"} onChange={(event) => setTasks((values) => values.map((value) => value.id === task.id ? { ...value, status: event.target.value as Task["status"] } : value))}>{WORK_STATUSES.map((value) => <option key={value}>{value}</option>)}</select>
+        <select
+          disabled={!canEdit}
+          aria-label={`Priority for ${task.title}`}
+          className={priorityClass(task.priority)}
+          value={task.priority}
+          onChange={(event) => setTasks((values) => values.map((value) => value.id === task.id ? { ...value, priority: event.target.value as Task["priority"] } : value))}
+        >
+          {TASK_PRIORITIES.map((value) => <option key={value}>{value}</option>)}
+        </select>
+        <Label tone={isTaskDueToday(task.due) ? "high" : undefined}>{formatTaskDue(task.due)}</Label>
+        {canEdit ? <button className="more-button" aria-label={`Delete ${task.title}`} title={isSubtask ? "Delete subtask" : "Delete task; subtasks become top-level tasks"} onClick={() => remove(task)}><Trash2 size={15}/></button> : <span/>}
+      </div>
+      {!isSubtask && !isCollapsed && visibleChildren.length > 0 && <div className="task-subtasks">{sortTaskItems(visibleChildren, sortMode).map((child) => renderTaskRow(child, true))}</div>}
     </div>;
   };
   return (
-    <div className={classNames("view task-work-view", isFocusedView && "task-work-focused")}>
+    <div className="view">
       <PageHeading
         eyebrow={isDelivery ? "Project execution" : "GTM execution"}
-        title={isFocusedView ? "Task details" : isDelivery ? "Project work" : "GTM Work"}
-        description={isFocusedView ? "This task and its related subtasks. Updates are saved to the original work record." : isDelivery ? "Track project tasks, owners, progress, and deadlines in one place." : "Track sales and marketing tasks, owners, progress, and deadlines in one place."}
+        title={isDelivery ? "Project work" : "GTM Work"}
+        description={isDelivery ? "Project commitments across every work type, with owners, priorities, subtasks, and separate deadlines. A project link—not the task category—is the authoritative connection to the portfolio." : "Dated commitments across sales, partnerships, marketing, 5-3-1, and media production. Link work to the relevant account, deal, content, or campaign."}
         action={
-          isFocusedView ? <div className="work-view-heading-actions"><button className="button button-secondary" onClick={() => goTo(isDelivery ? "delivery-work" : "tasks")}>Show all {isDelivery ? "project" : "GTM"} work <ArrowRight size={15}/></button></div> :
           <button
             className="button button-primary"
             onClick={() => openCreate()}
@@ -2649,7 +2637,7 @@ function TasksView({
       />
       <div className="task-access-strip reveal"><ShieldCheck size={15}/><span><b>{viewer.displayName}&apos;s access preview</b> · {viewerAccess?.role || "Member"} · {(viewerAccess ? previewWorkspaceLabels(viewerAccess) : []).join(" · ") || "No workspace grants"}</span><button type="button" onClick={openAccessSettings}>Access model <ArrowRight size={13}/></button></div>
       {showForm && (
-        <form ref={formRef} className="task-form reveal" onSubmit={submit}>
+        <form className="task-form reveal" onSubmit={submit}>
           <div>
             <p className="eyebrow">{editingTaskId ? "Edit task" : parentId ? "New subtask" : "New task"}</p>
             <label>
@@ -2764,7 +2752,6 @@ function TasksView({
             </label>
           </div>
           <div className="form-actions">
-            {taskEditError && <small className="task-form-error" role="alert">{taskEditError}</small>}
             {privateTaskNeedsOwner && <small className="task-form-error">Owner-only work needs an assigned owner.</small>}
             {projectLinkIssue && <small className="task-form-error" role="alert">{projectLinkIssue}</small>}
             {isDelivery && !projectOptions.some((project) => !["Complete", "Paused", "Stopped"].includes(project.operationalStatus)) && <button type="button" className="button button-ghost" onClick={() => { resetForm(); goTo("projects"); }}>Create project first</button>}
@@ -2779,7 +2766,7 @@ function TasksView({
           </div>
         </form>
       )}
-      {!isFocusedView && <div className="work-task-summary reveal delay-1" aria-label="Workspace task totals">
+      <div className="task-summary reveal delay-1">
         <div>
           <b>{allOpen.length}</b>
           <span>open tasks</span>
@@ -2792,16 +2779,22 @@ function TasksView({
           <b>{openSubtaskCount}</b>
           <span>open subtasks</span>
         </div>
-        <div>
-          <b>{completedToday.length}</b>
-          <span>completed today</span>
+        <div className="task-progress">
+          <span>
+            <i
+              style={{
+                width: `${todayTotal ? (completedToday.length / todayTotal) * 100 : 0}%`,
+              }}
+            />
+          </span>
+          <small>{completedToday.length} completed today</small>
         </div>
-      </div>}
+      </div>
       <div className="work-controls reveal delay-1">
         <div className="work-category-filter">
           <button className={categoryFilter === "All" ? "active" : ""} onClick={() => setCategoryFilter("All")}>All <span>{allOpen.length}</span></button>
           {(showAllShared || initialFocus !== undefined ? taskCategories : scopedCategories).map((value) => {
-            const count = allOpen.filter((task) => taskCategoryForDisplay(task) === value).length;
+            const count = allOpen.filter((task) => (task.category || "General") === value).length;
             return <button key={value} className={categoryFilter === value ? "active" : ""} onClick={() => setCategoryFilter(value)}>{value} <span>{count}</span></button>;
           })}
           <button className={showAllShared ? "active" : ""} onClick={() => { setShowAllShared((value) => !value); setCategoryFilter("All"); }}>{showAllShared ? `Show ${isDelivery ? "project" : "GTM"} workspace` : "All accessible work"}</button>
@@ -2814,17 +2807,25 @@ function TasksView({
         <label className="sort-control"><span>Sort</span><select value={sortMode} onChange={(event) => setSortMode(event.target.value as TaskSortMode)} aria-label="Sort work"><option value="due-asc">Due soonest</option><option value="due-desc">Due latest</option><option value="priority-desc">Priority: highest</option><option value="priority-asc">Priority: lowest</option><option value="created-desc">Recently added</option></select></label>
       </div>
       {open.length ? (
-        <div className="work-task-list reveal delay-2">
-          {openTaskGroups.map((group) => <section className="work-task-section" key={group.key} aria-label={`${group.label} tasks`}>
-            {!isFocusedView && groupMode !== "none" && <header className="work-task-group-heading"><h2>{group.label}</h2><span>{group.tasks.length} {group.tasks.length === 1 ? "task" : "tasks"}</span></header>}
+        <div className="task-list reveal delay-2">
+          <div className="task-list-head task-list-head-hierarchy">
+            <span>Task / subtasks</span>
+            <span>Owner</span>
+            <span>Status</span>
+            <span>Priority</span>
+            <span>Due</span>
+            <span />
+          </div>
+          {openTaskGroups.map((group) => <section className="task-list-group" key={group.key} aria-label={`${group.label} tasks`}>
+            {groupMode !== "none" && <header className="task-list-group-head"><b>{group.label}</b><span>{group.tasks.length}</span></header>}
             {group.tasks.map((task) => renderTaskRow(task))}
           </section>)}
         </div>
-      ) : completed.length ? null : (
+      ) : (
         <Panel className="empty-state">
           <ListTodo size={26} />
-          <h2>{isFocusedView ? "This task is unavailable in this view" : `No open ${isDelivery ? "project" : "GTM"} tasks`}</h2>
-          <p>{isFocusedView ? "It may have been removed or may not be visible to this preview profile. Choose Show all to return to the work list." : "Add a task, adjust the filters, or choose All accessible work to see shared tasks from other workspaces."}</p>
+          <h2>No open {isDelivery ? "project" : "GTM"} tasks</h2>
+          <p>Add the first task when there is something worth committing to, or use All accessible work to review explicitly shared work from another workspace.</p>
         </Panel>
       )}
       {completed.length > 0 && (
@@ -2841,7 +2842,7 @@ function TasksView({
                     : "Completed"}
                   {` · was due ${formatTaskDue(task.due)}`}
                   {task.seriesId !== undefined ? " · recurring occurrence" : ""}
-                  {` · ${taskWorkspaceLabel(task, projects)} · ${taskCategoryForDisplay(task)} · ${taskVisibilityLabel(task)} · Owner: ${task.owner || "Unassigned"} · ${task.priority} priority · ${task.effort || "Small"}`}
+                  {` · ${taskWorkspaceLabel(task, projects)} · ${task.category || "General"} · ${taskVisibilityLabel(task)} · Owner: ${task.owner || "Unassigned"} · ${task.priority} priority · ${task.effort || "Small"}`}
                 </small>
               </div>
               {task.seriesId === undefined && previewCanEditTask(task, viewer, projects) && (
@@ -2933,7 +2934,6 @@ type SettingsDraft = Omit<SettingsUpdate, "ai" | "industry" | "mentions"> & {
   ai: NonNullable<SettingsUpdate["ai"]> & {
     keySet: PublicSettings["ai"]["keySet"];
     keySource: PublicSettings["ai"]["keySource"];
-    customProvider?: PublicSettings["ai"]["customProvider"];
   };
 };
 
@@ -3041,13 +3041,7 @@ function SettingsView({
       const saved = payload as PublicSettings;
       setDraft(settingsDraft(saved));
       onSaved(saved);
-      setNotice(section === "integrations"
-        ? "Saved. Local summary-bridge settings updated; no provider was connected."
-        : section === "ai" && saved.ai.provider === "custom"
-          ? saved.ai.customProvider?.available
-            ? "Saved. Background AI will use the IT-managed adapter; availability is checked when a request runs."
-            : "Saved. Custom background AI is selected, but IT setup is still required. No provider was connected."
-          : "Saved. Live pages will use this configuration immediately.");
+      setNotice("Saved. Live pages will use this configuration immediately.");
       return true;
     } catch (error) {
       setNotice(
@@ -3173,15 +3167,15 @@ function SettingsView({
     { id: "newsletters", label: "Newsletters", icon: Mail },
     { id: "audience", label: "Audience", icon: Users },
     { id: "ai", label: "AI curation", icon: Sparkles },
-    { id: "integrations", label: "Integrations & connections", icon: Cable },
+    { id: "integrations", label: "Integrations", icon: Cable },
   ];
   return (
     <div className="view">
       <PageHeading
         eyebrow="Administration"
         title="Settings"
-        description="Manage this standalone preview's sources and preferences. Production company identity, access, shared storage, connectors, and audit still require engineering setup; they are not connected here."
-        action={section !== "integrations" ?
+        description="Manage this demo's sources and preferences. Company identity, access, connectors, feature controls, audit, and operations use the existing Spej OS services in production."
+        action={
           <button
             className="button button-primary"
             onClick={save}
@@ -3193,7 +3187,7 @@ function SettingsView({
               <Check size={15} />
             )}{" "}
             Save settings
-          </button> : undefined
+          </button>
         }
       />
       {notice && (
@@ -4178,14 +4172,32 @@ function SettingsView({
           )}
           {section === "integrations" && (
             <Panel className="settings-panel">
-              <ConnectionsSettings key={viewer.id} profileId={viewer.id} profileName={viewer.displayName}/>
-              <details className="connections-legacy-bridge">
-                <summary>Advanced · Local summary bridge</summary>
+              <div className="os-sync-plan">
+                <div className="os-sync-plan-head"><div><p className="eyebrow">Production connection</p><h2>Existing Spej OS services</h2><p>Use this interface as a focused shell over the company&apos;s canonical identity, CRM, project, ticket, document, and audit services.</p></div><span><i/>Not connected</span></div>
+                <div className="os-sync-rules">
+                  <div><b>Preview → production services</b><p>Map approved accounts, contacts, activity, opportunity changes, project status, and tasks to canonical IDs.</p></div>
+                  <div><b>Production services → workspaces</b><p>Return permissions, canonical records, delivery status, tickets, documents, ownership, and relevant history to the right view.</p></div>
+                  <div><b>Never blindly overwrite</b><p>Match on stable IDs, reject duplicates, preserve source and timestamps, and require review for conflicts or sensitive deal changes.</p></div>
+                </div>
+                <p className="os-sync-footnote">This screen defines the intended integration contract. The production build should reuse Spej OS APIs, MCP tools, webhooks, identity, and permissions instead of creating a second source of truth.</p>
+                <div className="integration-contract-grid" aria-label="Production integration readiness">
+                  <article><div><b>Microsoft Teams</b><span>Contract defined</span></div><p>Receive approved chat commands, meeting events, and linked context through Microsoft Graph. No tenant has been authenticated.</p><small>IT supplies Entra app, scopes, webhook validation, and channel policy.</small></article>
+                  <article><div><b>Microsoft Outlook</b><span>Contract defined</span></div><p>Map approved email and calendar events to activities, meetings, follow-ups, and source evidence. No mailbox is connected.</p><small>IT supplies delegated or application permissions and retention rules.</small></article>
+                  <article><div><b>SharePoint</b><span>Contract defined</span></div><p>Link governed documents to canonical accounts, opportunities, and projects without copying entire libraries into the dashboard.</p><small>IT supplies site allowlists, record mapping, and access enforcement.</small></article>
+                  <article><div><b>SOSA</b><span>Tool contract ready</span></div><p>Read authorized records, propose reviewable actions, and commit through canonical services. The existing production agent is not connected here.</p><small>IT maps SOSA tools to authenticated user and record permissions.</small></article>
+                  <article><div><b>Knowledge graph &amp; documents</b><span>Retain existing service</span></div><p>Keep Spej OS document processing, vector indexing, transcript metadata, and permission-aware retrieval as the knowledge layer.</p><small>This interface stores record links and approved facts, not uncontrolled copies of private files.</small></article>
+                  <article><div><b>API, MCP &amp; webhooks</b><span>Retain and extend</span></div><p>Use existing tenant-scoped APIs, MCP tools, key scopes, rate limits, and signed webhooks to connect this interface and approved external tools.</p><small>Rotate historical test credentials and keep every tool allowlisted.</small></article>
+                  <article><div><b>Other data sources</b><span>Retain connector service</span></div><p>Keep existing Google Workspace, file-share, REST, and Azure SQL connection options available through the current Spej OS connector layer.</p><small>Expose coverage and sync health here; do not create a second connector registry.</small></article>
+                  <article><div><b>Tickets &amp; quality</b><span>Map to projects</span></div><p>Keep the existing ticket and quality workflow, then show authorized open items inside the related project and My Work views.</p><small>Ticket records remain canonical; the dashboard does not create a second issue system.</small></article>
+                  <article><div><b>Audit &amp; job health</b><span>Retain existing service</span></div><p>Continue recording administrative changes and monitoring sync jobs, retries, failures, connector coverage, and remediation.</p><small>SOSA must report source health instead of assuming every knowledge source is complete.</small></article>
+                  <article><div><b>Feature, model &amp; usage controls</b><span>Retain control plane</span></div><p>Keep current module flags, entitlements, model selection, presentation generation, branding, AI usage, and cost controls authoritative.</p><small>This shell should show status or a governed deep link, not rebuild those administrative services.</small></article>
+                </div>
+              </div>
               <div className="settings-title">
                 <Cable />
                 <div>
                   <p className="eyebrow">Optional · advanced setup</p>
-                  <h2>Optional local summary bridge</h2>
+                  <h2>Bring private context into My Work</h2>
                   <p>
                     Use this only if you want My Work to include private messages, meetings, or to-dos from apps such as Slack, Gmail, Granola, or Calendar. Industry, Mentions, Audience, and newsletter collection do not need this page.
                   </p>
@@ -4249,7 +4261,6 @@ function SettingsView({
                     source&apos;s health, and post stable items to this computer.
                   </p>
                 </div>
-                <button type="button" className="button button-secondary" onClick={() => void save()} disabled={saving}>{saving ? "Saving…" : "Save local bridge settings"}</button>
                 <button
                   type="button"
                   className="button button-primary"
@@ -4294,7 +4305,6 @@ function SettingsView({
                   access.
                 </p>
               </div>
-              </details>
             </Panel>
           )}
         </div>
@@ -4338,7 +4348,6 @@ export function ControlCenter() {
   const viewer = getTeamViewProfile(viewerId) || TEAM_VIEW_PROFILES[0];
   const currentAccessProfile = previewAccessProfiles.find((profile) => profile.id === viewer.id) || previewAccessProfiles[0]!;
   const currentTenantPolicy = profileTenantPolicy(currentAccessProfile, previewModuleFlags);
-  const canViewCalendarRoute = (route: string) => isTab(route) && evaluatePortalAccess({ subject: currentAccessProfile.subject, roles: PREVIEW_ACCESS_ROLES, portalId: tabPortal(route), tenantPolicy: currentTenantPolicy }).allowed;
 
   useEffect(() => {
     let cancelled = false;
@@ -4773,7 +4782,7 @@ export function ControlCenter() {
               value={viewer.id}
               onChange={(event) => {
                 const profile = getTeamViewProfile(event.target.value);
-                if (profile) { setAgentCommand(""); setViewerId(profile.id); }
+                if (profile) setViewerId(profile.id);
               }}
             >
               {TEAM_VIEW_PROFILES.map((profile) => <option key={profile.id} value={profile.id}>{profile.displayName}</option>)}
@@ -4824,8 +4833,8 @@ export function ControlCenter() {
           <Panel className="recovery-panel"><LockKeyhole size={30}/><p className="eyebrow">Demo layout only</p><h1>This portal is hidden in this preview</h1><p>{activeAccessDecision.explanation} This display choice is not an authentication or authorization decision. Production must enforce access before returning any records.</p><button className="button button-secondary" onClick={() => openSettings(canManageAccess ? "access" : "general")}>Open settings</button></Panel>
         ) : <>
         <WorkspaceSectionNav activeTab={activeTab} goTo={goTo} />
-        {activeTab !== "today" && !(focusedRecordId !== undefined && (activeTab === "tasks" || activeTab === "delivery-work")) && <WorkflowGuide activeTab={activeTab} goTo={(tab) => goTo(tab as Tab)} askSosa={(prompt) => { setAgentCommand(prompt); goTo("agent"); }} />}
-        {focusedRecordId !== undefined && recordFocusTabs.includes(activeTab) && activeTab !== "tasks" && activeTab !== "delivery-work" && <section className="record-focus-notice" aria-label="Linked record view"><div><strong>Linked record view</strong><p>Only the linked record is shown below. Summary totals are not narrowed by this link. If it was removed or archived, choose Show all.</p></div><button className="button button-secondary" onClick={() => goTo(activeTab)}>Show all</button></section>}
+        {activeTab !== "today" && <WorkflowGuide activeTab={activeTab} goTo={(tab) => goTo(tab as Tab)} askSosa={(prompt) => { setAgentCommand(prompt); goTo("agent"); }} />}
+        {focusedRecordId !== undefined && recordFocusTabs.includes(activeTab) && <section className="record-focus-notice" aria-label="Linked record view"><div><strong>Linked record view{activeTab === "tasks" || activeTab === "delivery-work" ? " · includes its task family" : ""}</strong><p>Only the linked record is shown below. Summary totals are not narrowed by this link. If it was removed or archived, choose Show all.</p></div><button className="button button-secondary" onClick={() => goTo(activeTab)}>Show all</button></section>}
         {activeTab === "today" && (
           <TodayView
             canViewTab={(route) => evaluatePortalAccess({ subject: currentAccessProfile.subject, roles: PREVIEW_ACCESS_ROLES, portalId: tabPortal(route as Tab), tenantPolicy: currentTenantPolicy }).allowed}
@@ -4855,30 +4864,14 @@ export function ControlCenter() {
         {activeTab === "gtm" && (
           <GtmWorkspaceHome accounts={accounts} contacts={contacts} opportunities={opportunities} partnerships={partnerships} campaigns={campaigns} content={content} tasks={tasks} projects={projects} goTo={goTo} />
         )}{" "}
-        {activeTab === "calendar" && <div className="view"><WorkPlanning
-          key={`calendar:${viewer.id}`}
-          parentIdsWithOpenWork={getOpenParentTaskIds(tasks)}
-          ownerId={viewer.id}
-          displayName={viewer.displayName}
-          tasks={tasks.filter((task) => previewCanViewTask(task, viewer, projects) && previewOwnsTask(task, viewer))}
-          deadlines={buildPersonalCalendarDeadlines({ tasks, projects, content, campaigns, opportunities, partnerships, accounts, contacts }, viewer, canViewCalendarRoute)}
-          openTask={(task) => goTo(taskWorkspaceId(task, projects) === "project-management" ? "delivery-work" : "tasks", task.id)}
-          completeTask={(task) => {
-            if (!previewCanEditTask(task, viewer, projects) || tasks.some((item) => !item.done && String(item.parentId) === String(task.id))) return;
-            setTasks((items) => completeTaskItems(items, task.id, { expectedDue: task.due }));
-          }}
-          askSosa={(context) => { setAgentCommand(context); goTo("agent"); }}
-          openRecord={(route, id) => { if (isTab(route) && canViewCalendarRoute(route)) goTo(route, id); }}
-        /></div>}
         {activeTab === "gtm-linkedin" && (
-          <RelationshipsView key={`gtm-linkedin:${viewer.id}`} initialFocus="531" defaultOwner={viewer.displayName} accounts={accounts} setAccounts={setAccounts} contacts={contacts} setContacts={setContacts} activities={activities} setActivities={setActivities} campaigns={campaigns} tasks={tasks.filter((task) => previewCanViewTask(task, viewer, projects))} opportunities={opportunities} projects={projects} partnerships={partnerships} goTo={goTo} addTask={addOperationsTask} />
+          <RelationshipsView key={`gtm-linkedin:${viewer.id}`} initialFocus="531" defaultOwner={viewer.displayName} accounts={accounts} setAccounts={setAccounts} contacts={contacts} setContacts={setContacts} activities={activities} setActivities={setActivities} campaigns={campaigns} tasks={tasks} opportunities={opportunities} projects={projects} partnerships={partnerships} goTo={goTo} addTask={addOperationsTask} />
         )}{" "}
         {activeTab === "delivery" && (
           <DeliveryWorkspaceHome accounts={accounts} opportunities={opportunities} projects={projects} tasks={tasks} goTo={goTo} />
         )}{" "}
         <div hidden={activeTab !== "agent"}>
           <SpejAgent
-            key={`sosa:${viewer.id}`}
             command={agentCommand}
             setCommand={setAgentCommand}
             initialIntakeId={activeTab === "agent" && typeof focusedRecordId === "string" ? focusedRecordId : undefined}
@@ -4902,7 +4895,7 @@ export function ControlCenter() {
           />
         </div>
         {activeTab === "relationships" && (
-          <RelationshipsView key={`${viewer.id}:${focusedRecordId || "accounts"}`} initialFocus={focusedRecordId} defaultOwner={viewer.displayName} accounts={accounts} setAccounts={setAccounts} contacts={contacts} setContacts={setContacts} activities={activities} setActivities={setActivities} campaigns={campaigns} tasks={tasks.filter((task) => previewCanViewTask(task, viewer, projects))} opportunities={opportunities} projects={projects} partnerships={partnerships} goTo={goTo} addTask={addOperationsTask} />
+          <RelationshipsView key={`${viewer.id}:${focusedRecordId || "accounts"}`} initialFocus={focusedRecordId} defaultOwner={viewer.displayName} accounts={accounts} setAccounts={setAccounts} contacts={contacts} setContacts={setContacts} activities={activities} setActivities={setActivities} campaigns={campaigns} tasks={tasks} opportunities={opportunities} projects={projects} partnerships={partnerships} goTo={goTo} addTask={addOperationsTask} />
         )}{" "}
         {activeTab === "pipeline" && (
           <PipelineView key={`${viewer.id}:${focusedRecordId || "pipeline"}`} initialFocus={focusedRecordId} defaultOwner={viewer.displayName} opportunities={opportunities} setOpportunities={setOpportunities} accounts={accounts} contacts={contacts} activities={activities} addTask={addOperationsTask} />

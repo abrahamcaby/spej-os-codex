@@ -1,10 +1,10 @@
 import type { AccountItem, ActivityItem, ContactItem, ContentItem, OpportunityItem } from "./types";
 import { cleanAcquisitionMotion } from "./gtm-sources";
 
-export const ACTIVITY_METRIC_TYPES = ["Outreach sent", "Follow-up sent", "Reply received", "Call attempted", "Call connected", "Incoming call connected", "Meeting booked", "Meeting held", "Meeting cancelled", "Meeting no-show", "Comment made", "Connection requested", "Check-in completed", "Other"] as const;
+export const ACTIVITY_METRIC_TYPES = ["Outreach sent", "Follow-up sent", "Reply received", "Call attempted", "Call connected", "Meeting booked", "Meeting held", "Meeting cancelled", "Meeting no-show", "Comment made", "Connection requested", "Check-in completed", "Other"] as const;
 export const ACTIVITY_PURPOSES = ["Unclassified", "Business development", "Client relationship", "Partner relationship"] as const;
 export const CONTACT_LIFECYCLES = ["Unclassified", "Prospect", "Lead", "Customer", "Partner", "Network"] as const;
-export const ACTIVITY_CHANNELS = ["LinkedIn 5-3-1", "LinkedIn", "Email", "Text / SMS", "WhatsApp", "Meeting", "Call", "Referral", "Event", "Content", "Other"] as const satisfies readonly ActivityItem["channel"][];
+export const ACTIVITY_CHANNELS = ["LinkedIn 5-3-1", "LinkedIn", "Email", "Meeting", "Call", "Referral", "Event", "Content", "Other"] as const;
 
 export function validMetricDate(value: string | undefined): boolean {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;

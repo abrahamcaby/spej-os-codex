@@ -12,7 +12,6 @@ import type { DailyBriefItem, DailyBriefResponse } from "@/lib/types";
 import type { LiveFeedResponse, NewsletterFeedResponse } from "@/lib/types";
 import { readCollectorSnapshot } from "@/lib/collector-cache";
 import { industryCacheScope, mentionsCacheScope } from "@/lib/collector-scopes";
-import { customBackgroundAiCacheScope } from "@/lib/server/custom-background-ai";
 import { buildDailyBriefSnapshot } from "@/lib/daily-brief-snapshot";
 import { buildDailyIntelligenceDigest } from "@/lib/intelligence-digest";
 import { newsletterCollectionScope } from "@/lib/server/newsletter-collector";
@@ -82,9 +81,8 @@ async function responsePayload(): Promise<DailyBriefResponse> {
       message: status?.message || "",
     };
   });
-  const customScope = settings.ai.provider === "custom" ? customBackgroundAiCacheScope() : "";
-  const industry = readCollectorSnapshot<LiveFeedResponse>(database, "industry", industryCacheScope(settings, customScope))?.payload;
-  const mentions = readCollectorSnapshot<LiveFeedResponse>(database, "mentions", mentionsCacheScope(settings, customScope))?.payload;
+  const industry = readCollectorSnapshot<LiveFeedResponse>(database, "industry", industryCacheScope(settings))?.payload;
+  const mentions = readCollectorSnapshot<LiveFeedResponse>(database, "mentions", mentionsCacheScope(settings))?.payload;
   const newsletters = readCollectorSnapshot<NewsletterFeedResponse>(database, "newsletters", newsletterCollectionScope(settings))?.payload;
   const snapshot = buildDailyBriefSnapshot(settings.dailyBrief.sections, {
     industry,

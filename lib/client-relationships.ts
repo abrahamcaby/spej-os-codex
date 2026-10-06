@@ -42,7 +42,7 @@ export function accountRelationship(account: AccountItem, records: ClientRecords
   const statusConflict = (clientStatus === "Past client" || clientStatus === "Not a client") && currentProjects.length > 0;
   const activities = records.activities.filter((item) => !item.archivedAt && (item.accountId === account.id || (!item.accountId && people.some((person) => person.id === item.contactId))))
     .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
-  const meaningfulDates = activities.filter((item) => item.sourceDateKnown !== false && (item.metricType === "Check-in completed" || (["Client relationship", "Partner relationship"].includes(item.purpose || "") && ["Meeting held", "Call connected", "Incoming call connected"].includes(item.metricType || ""))) && validMetricDate(item.occurredAt) && item.occurredAt <= today).map((item) => item.occurredAt);
+  const meaningfulDates = activities.filter((item) => item.sourceDateKnown !== false && (item.metricType === "Check-in completed" || (["Client relationship", "Partner relationship"].includes(item.purpose || "") && ["Meeting held", "Call connected"].includes(item.metricType || ""))) && validMetricDate(item.occurredAt) && item.occurredAt <= today).map((item) => item.occurredAt);
   const lastContact = [account.lastCheckIn || "", ...meaningfulDates].filter((date) => validMetricDate(date) && date <= today).sort().at(-1) || "";
   const cadence = account.checkInCadence || "Not set";
   const days = cadence === "30 days" ? 30 : cadence === "60 days" ? 60 : cadence === "90 days" ? 90 : 0;

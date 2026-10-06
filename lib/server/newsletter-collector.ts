@@ -29,7 +29,6 @@ import { getDatabase, syncContentItems } from "@/lib/server/database";
 import { resolvePublicRedirect } from "@/lib/server/safe-fetch";
 import { consolidateNewsletterTopicsWithAi, extractNewsletterStoriesWithAi, prioritizeSavedNewsletterTopicsWithAi } from "@/lib/server/newsletter-ai";
 import { configuredAiReady } from "@/lib/server/settings";
-import { customBackgroundAiCacheScope } from "@/lib/server/custom-background-ai";
 import type { readSettings } from "@/lib/server/settings";
 import { isLocalAiProvider } from "@/lib/ai-providers";
 import { newsletterPriority, sortFeedStories } from "@/lib/feed-priority";
@@ -107,7 +106,6 @@ export function newsletterCollectionScope(settings: Settings) {
     settings.newsletters.gmailQuery,
     settings.ai.provider,
     settings.ai.model,
-    ...(settings.ai.provider === "custom" ? [customBackgroundAiCacheScope()] : []),
     settings.industry.description,
     ...settings.industry.keywords.map((term) => `topic:${term}`),
     ...settings.industry.excludedTerms.map((term) => `exclude:${term}`),

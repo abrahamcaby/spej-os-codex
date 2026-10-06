@@ -2,8 +2,6 @@
 
 **Status:** handoff runbook. The current application is a local preview and integration reference, not a production deployment. Completing the repository checks does not certify the production integrations described here.
 
-**Direction update — September 17, 2026:** deploy this as a new standalone company OS after engineering implements and verifies the production prerequisites. Existing-system wiring in inherited documents is an optional migration path, not a required foundation; no change to current production is authorized. Canonical ownership, identity, least privilege, durable state, approvals, audit, staging, recovery, and the startup guard remain mandatory. Microsoft Graph and Plooms are not connected; confirm Plooms' execution and/or usage contract before implementation.
-
 > **Production startup is intentionally blocked.** An unset `SPEJ_RUNTIME` (or `local-preview`) runs the non-sensitive local preview. Setting `SPEJ_RUNTIME=production` stops before the local SQLite database or in-process scheduler can start. IT must wire and verify the canonical database, company identity, audit, durable queue/worker, and production health adapters before removing this guard.
 
 ## A. Local demonstration
@@ -12,10 +10,10 @@ Requirements: Node.js `>=24.19.0`, npm from the lockfile workflow, and a local m
 
 ```bash
 npm ci
-npm run company-demo -- --dev --port=3102
+npm run check
+npm run smoke
+npm run launch
 ```
-
-Open `http://127.0.0.1:3102/?tab=today`. See [Company OS planning](COMPANY_OS_PLANNING.md) for the current walkthrough, local persistence boundaries, and recorded checks. This starts a synthetic loopback demo, not a Vercel or production deployment. The release validation commands remain in section C below.
 
 Use only non-sensitive demo data. Keep the application on `127.0.0.1`. Do not use production OAuth credentials, exports, email content, transcripts, or local database files in a demo repository or deployment.
 
@@ -33,11 +31,11 @@ Spej IT names owners for application, identity/RBAC, canonical records, Microsof
 
 The production environment template contains names only. Put values in the approved secret/config systems, never in Git.
 
-The included [`.env.production.example`](../.env.production.example) intentionally fails if copied unchanged. Its validator describes the minimum production configuration contract: PostgreSQL, verified OIDC settings, a strong session secret, audit and secret-manager selections, and a durable queue. Reconcile inherited existing-service IDs and the validator with the approved standalone service design; do not fill them with fictitious values or remove checks to appear ready. Optional Microsoft and SOSA settings become mandatory only when their feature flag is enabled. Microsoft supports workload identity or an explicitly approved client-secret mode. Passing this configuration validator does not bypass the production startup block or prove that any adapter is implemented.
+The included [`.env.production.example`](../.env.production.example) intentionally fails if copied unchanged. Its validator describes the minimum production configuration contract: PostgreSQL, verified OIDC settings, a strong session secret, audit and secret-manager selections, and a durable queue. Optional Microsoft and SOSA settings become mandatory only when their feature flag is enabled. Microsoft supports workload identity or an explicitly approved client-secret mode. Passing this configuration validator does not bypass the production startup block or prove that any adapter is implemented.
 
 ## C. Build and release
 
-1. Use the approved private review repository, `SpejAI/spej-os-aby-revamp`, preserving its current history and contributors' work on an isolated review branch. Leave `SpejAI/spej-ai-os` untouched; verify ownership and repository metadata as part of review.
+1. Create a private company repository and correct package/repository ownership metadata as part of the handoff review.
 2. Protect the release branch; require review, CI, secret scanning, and dependency scanning.
 3. Build from the lockfile on the required Node version:
 
@@ -53,7 +51,7 @@ The included [`.env.production.example`](../.env.production.example) intentional
    npx tsx --test tests/integration-*.test.ts tests/microsoft-*.test.ts tests/auth-principal.test.ts tests/sosa-authorization.test.ts tests/canonical-record-gateway.test.ts tests/production-env.test.ts
    ```
 
-   These tests validate reference contracts and in-memory semantics. They do not replace staging tests against the selected company identity, canonical services, SOSA/provider runtime, Microsoft Graph, or durable infrastructure. Record the actual candidate commit and CI results separately; local results do not prove upload or CI success.
+   These tests validate reference contracts and in-memory semantics. They do not replace staging tests against company identity, canonical Spej OS, SOSA, Microsoft Graph, or durable infrastructure.
 
 5. Produce one immutable artifact with commit SHA, dependency manifest/SBOM if supported, build logs, and test evidence.
 6. Scan the artifact and configuration for secrets. Sign/provenance the artifact when company tooling supports it.
@@ -62,11 +60,11 @@ The included [`.env.production.example`](../.env.production.example) intentional
 ## D. Provision production services
 
 1. **Identity:** configure trusted issuer/audience, callback origins, session policy, group/role mapping, and service identities. Production must fail closed if identity configuration is absent.
-2. **Canonical gateway:** connect record-level search/read/prepare/commit and append-only audit to the new build's approved canonical services. Disable the local whole-workspace mutation path in production. Reusing an existing service requires an explicit ownership and compatibility decision.
+2. **Canonical gateway:** connect record-level search/read/prepare/commit and append-only audit to existing Spej OS services. Disable the local whole-workspace mutation path in production.
 3. **State:** provision durable proposal, approval, integration-event, cursor, idempotency, dead-letter, and audit stores with tenant-scoped keys and backups.
 4. **Queue/workers:** run connector and transcript work outside web request lifetimes. Configure bounded retries, concurrency, rate limits, and kill switches.
 5. **Microsoft:** use a non-production tenant first; configure only approved resources and scopes; store credentials in the secret manager; establish webhook HTTPS endpoint, validation, renewal, delta, and health monitoring.
-6. **SOSA:** register versioned governed tools with the selected agent runtime and define model/conversation ownership. Supply identity outside prompts and deny direct database/Graph access. Implement Plooms only against a confirmed contract and approved credentials; it is not live in this preview.
+6. **SOSA:** register versioned governed tools with the existing agent. Keep model and conversation ownership in the existing service. Supply identity outside prompts and deny direct database/Graph access.
 7. **Web:** deploy the stateless UI/API behind company authentication, TLS, WAF/gateway controls, request/body limits, and restricted origins.
 8. **Observability:** emit correlation IDs across gateway, SOSA, canonical commits, connectors, queues, and audit. Configure alerts before enabling writes.
 9. **Runtime guard:** only after the preceding adapters and staging gates are implemented, replace the intentional `SPEJ_RUNTIME=production` startup block with checks that verify those live dependencies. The production health endpoint must report each dependency separately and must not return ready while a required dependency is unavailable.

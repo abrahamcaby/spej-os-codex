@@ -6,8 +6,6 @@ import { focusedRecords, focusedTaskIds, contentMatchesSearch } from "../lib/rec
 import { PipelineView, ProjectsView } from "../components/director-operations";
 import { DeliveryWorkspaceHome, GtmWorkspaceHome } from "../components/workspace-overviews";
 import { ClientsView } from "../components/clients-view";
-import { RelationshipsView } from "../components/relationships-view";
-import { WorkflowGuide } from "../components/workflow-guide";
 import { cleanOpportunities, cleanProjects } from "../lib/operations";
 import type { TaskItem } from "../lib/types";
 
@@ -88,38 +86,11 @@ test("workspace landing pages explain the connected GTM and Projects model", () 
   const delivery = renderToStaticMarkup(createElement(DeliveryWorkspaceHome, common));
   assert.ok(gtm.includes("Sales, partners, marketing"));
   assert.ok(gtm.includes("One record from sale to project"));
-  assert.ok(gtm.includes(">Outbound<"));
-  assert.ok(gtm.includes("part of the same outbound workflow"));
-  assert.ok(!gtm.includes("LinkedIn Focus"));
-  assert.ok(!gtm.includes("Personal LinkedIns"));
+  assert.ok(gtm.includes("LinkedIn Focus"));
+  assert.ok(gtm.includes("five accounts, three people in each"));
   assert.ok(delivery.includes(">Projects<"));
   assert.ok(delivery.includes("Connected project records"));
   assert.ok(delivery.includes("Connected, not duplicated"));
-});
-
-test("outbound nests 5-3-1 under the shared workflow without installing personal posting chores", () => {
-  const html = renderToStaticMarkup(createElement(RelationshipsView, {
-    accounts: [], contacts: [], activities: [], campaigns: [], tasks: [], opportunities: [], projects: [], partnerships: [],
-    setAccounts: noop, setContacts: noop, setActivities: noop, addTask: noop, goTo: noop, initialFocus: "531",
-  }));
-  assert.ok(html.includes("<h1>Outbound</h1>"));
-  assert.ok(html.includes("Email, calls, and LinkedIn follow-ups belong to the same outbound workflow"));
-  assert.ok(html.includes("LinkedIn within outbound"));
-  assert.ok(html.includes('aria-label="5-3-1 LinkedIn progress"'));
-  assert.ok(html.indexOf("LinkedIn within outbound") < html.indexOf('aria-label="5-3-1 LinkedIn progress"'));
-  assert.ok(html.includes("Five accounts, three people in each, one relevant action"));
-  assert.ok(html.includes("Manual action required"));
-  assert.ok(!html.includes("Add daily LinkedIn tasks"));
-  assert.ok(!html.includes("LinkedIn Focus"));
-});
-
-test("workflow guidance keeps outbound together and describes one company content workflow", () => {
-  const outbound = renderToStaticMarkup(createElement(WorkflowGuide, { activeTab: "gtm-linkedin", goTo: noop, askSosa: noop }));
-  const content = renderToStaticMarkup(createElement(WorkflowGuide, { activeTab: "content", goTo: noop, askSosa: noop }));
-  assert.ok(outbound.includes("part of outbound, not a separate GTM motion"));
-  assert.ok(!outbound.includes("optional"));
-  assert.ok(content.includes("Manage company content"));
-  assert.ok(!content.includes("Personal LinkedIns"));
 });
 
 test("client search has a visible label and horizontal icon wrapper", () => {

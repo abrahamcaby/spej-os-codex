@@ -1,4 +1,4 @@
-import { isAiExecutionProvider } from "@/lib/ai-providers";
+import { isAiKeyProvider } from "@/lib/ai-providers";
 import { discoverAiModels } from "@/lib/server/ai-models";
 import { readSettings } from "@/lib/server/settings";
 
@@ -14,9 +14,7 @@ export async function POST(request: Request) {
     try { body = JSON.parse(raw); } catch { throw new Error("Model discovery options must be valid JSON."); }
     if (!body || typeof body !== "object") throw new Error("Choose an AI provider.");
     const values = body as Record<string, unknown>;
-    if (!isAiExecutionProvider(values.provider)) throw new Error("Choose a supported AI provider.");
-    if (values.provider === "custom" && ("apiKey" in values || "baseUrl" in values))
-      throw new Error("Custom provider credentials and destinations are configured by IT on the server, not through this form.");
+    if (!isAiKeyProvider(values.provider)) throw new Error("Choose a supported AI provider.");
     const payload = await discoverAiModels(await readSettings(), {
       provider: values.provider,
       apiKey: typeof values.apiKey === "string" ? values.apiKey : undefined,

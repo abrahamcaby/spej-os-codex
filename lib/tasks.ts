@@ -1,4 +1,4 @@
-import type { ProjectItem, TaskCategory, TaskItem, TaskVisibility, TaskWorkspaceId } from "./types";
+import type { ProjectItem, TaskItem, TaskVisibility, TaskWorkspaceId } from "./types";
 
 const RECURRENCES = new Set(["One-time", "Daily", "Weekly", "Monthly"]);
 const RECURRING_RECURRENCES = new Set(["Daily", "Weekly", "Monthly"]);
@@ -18,11 +18,6 @@ const RAPID_COMPLETION_GUARD_MS = 750;
 
 export type TaskSortMode = "due-asc" | "due-desc" | "priority-desc" | "priority-asc" | "created-desc";
 export type TaskWorkspace = "gtm" | "delivery";
-
-/** Keep legacy 5-3-1 work in Sales without rewriting its stored provenance. */
-export function taskCategoryForDisplay(task: Pick<TaskItem, "category">): Exclude<TaskCategory, "5-3-1"> {
-  return task.category === "5-3-1" ? "Sales" : task.category || "General";
-}
 
 export function taskVisibility(task: Pick<TaskItem, "visibility">): TaskVisibility {
   return TASK_VISIBILITY_SET.has(task.visibility || "") ? task.visibility! : "Private";

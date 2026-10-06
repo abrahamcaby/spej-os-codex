@@ -110,9 +110,9 @@ export function GtmWorkspaceHome({
       tab: "relationships" as const,
     },
     {
-      title: "Outbound",
-      copy: "Email, calls, and LinkedIn follow-ups. The 5-3-1 LinkedIn approach is part of the same outbound workflow.",
-      metric: "Shared CRM history and follow-up tasks",
+      title: "LinkedIn Focus",
+      copy: "The 5-3-1 relationship workflow: five accounts, three people in each, and one relevant action.",
+      metric: `${accounts.filter((item) => !item.archivedAt && item.focus531).length}/5 focus accounts`,
       icon: Target,
       tab: "gtm-linkedin" as const,
     },
@@ -125,7 +125,7 @@ export function GtmWorkspaceHome({
     },
     {
       title: "Content",
-      copy: "Company content, campaigns, production, review, and publishing in one place.",
+      copy: "Campaigns, Personal LinkedIns, Spej authority content, production, review, and publishing.",
       metric: `${activeCampaigns.length} campaigns · ${activeContent.length} content items`,
       icon: Clapperboard,
       tab: "content" as const,

@@ -11,8 +11,7 @@ import {
 } from "@/lib/mention-work";
 import { parseAiJson, runConfiguredAi } from "@/lib/server/ai";
 import type { StoredSettings } from "@/lib/server/settings";
-import type { AiExecutionProvider } from "@/lib/types";
-import { customBackgroundAiCacheScope } from "@/lib/server/custom-background-ai";
+import type { AiKeyProvider } from "@/lib/types";
 import type { MentionIdentityProfile } from "@/lib/types";
 
 type MentionResearchCandidate = { url: string; profileId: string };
@@ -20,7 +19,7 @@ type MentionResearchCandidate = { url: string; profileId: string };
 type CachedMentionResearch = {
   expiresAt: number;
   result: Promise<{
-    provider: AiExecutionProvider;
+    provider: AiKeyProvider;
     candidates: MentionResearchCandidate[];
     urls: string[];
     totalIdentityCount: number;
@@ -43,7 +42,6 @@ function researchKey(settings: StoredSettings, now: number) {
   return createHash("sha256").update(JSON.stringify({
     provider: settings.ai.provider,
     model: settings.ai.model,
-    customProviderScope: settings.ai.provider === "custom" ? customBackgroundAiCacheScope() : undefined,
     profiles: configuredMentionProfiles(settings.mentions),
     negatives: settings.mentions.negativeTerms,
     niche: settings.industry.description,
@@ -130,7 +128,7 @@ export async function researchMentionsWithAi(
   }).then((responses) => {
       const fulfilled = responses.filter(
         (response): response is PromiseFulfilledResult<{
-          provider: AiExecutionProvider;
+          provider: AiKeyProvider;
           candidates: MentionResearchCandidate[];
         }> =>
           response.status === "fulfilled",

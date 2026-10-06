@@ -7,7 +7,6 @@ import type {
 type IndustryAiCacheSettings = {
   provider: string;
   model: string;
-  customProviderScope?: string;
   localBaseUrls?: Partial<Record<"lmstudio" | "ollama", string>>;
 };
 
@@ -46,7 +45,6 @@ export function industryAiCacheKey(
   return createHash("sha256").update(JSON.stringify({
     provider: settings.provider,
     model: settings.model,
-    customProviderScope: settings.provider === "custom" ? settings.customProviderScope : undefined,
     localEndpoint: settings.provider === "lmstudio" || settings.provider === "ollama"
       ? settings.localBaseUrls?.[settings.provider]
       : undefined,

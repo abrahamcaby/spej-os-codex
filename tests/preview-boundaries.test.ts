@@ -44,8 +44,7 @@ test("SOSA labels a local model as preview-only and does not imply production st
   }));
   assert.ok(off.includes("Preview model off"));
   assert.ok(off.includes("Production SOSA status is not checked here"));
-  assert.ok(off.includes("This standalone build still needs production identity, model connections, governed tools, and server-enforced permissions"));
-  assert.ok(!off.includes("existing SOSA service remains authoritative"));
+  assert.ok(off.includes("existing SOSA service remains authoritative"));
   assert.ok(off.includes("Contract defined"));
   assert.ok(off.includes("Preview ready"));
   assert.ok(off.includes("Not connected"));
